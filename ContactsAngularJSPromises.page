@@ -1,0 +1,514 @@
+<!--
+	AngularJS promises - Visualforce custom page
+-->
+<apex:page showHeader="false" 
+		   sidebar="false" 
+		   standardStylesheets="false"
+		   controller="ContactsAngularJSPromises"
+		   applyHtmlTag="true"
+		   applyBodyTag="true"
+		   docType="html-5.0" 
+		   cache="true">
+
+	<!-- Static Resources -->
+   	<apex:includeScript value="{!$Resource.JQuery_3_1_0}"/>
+   	<apex:includeScript value="{!$Resource.AngularJS_1_5_8}"/>
+   	<apex:includeScript value="{!$Resource.UI_Bootstrap_0_10_0}"/>
+   	<apex:includeScript value="{!$Resource.NgBlock_UI_JS}"/>
+	<apex:includeScript value="{!$Resource.Tether_JS_min}"/>
+   	<apex:includeScript value="{!$Resource.Bootstrap_JS_4_0}"/>
+   	<apex:stylesheet value="{!$Resource.NgBlock_UI_CSS}"/>
+	<apex:stylesheet value="{!$Resource.Bootstrap_CSS_4_0}"/>
+
+	<!-- HTML starts here -->
+	<html lang="en-US">
+	<head>
+		<meta charset="UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    	<meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+    	<meta name="viewport" content="width=device-width" />
+		<title>SFDC Contacts</title>
+
+		<!-- Stylesheet -->
+		<style type="text/css">
+			@import url('https://fonts.googleapis.com/css?family=Bree+Serif|Patua+One');
+			body {
+				outline: 0;
+				padding-top: 30px;
+				padding-bottom: 30px;
+				width: 100%;
+				background: rgb(200,215,220); /* Old browsers */
+				background: -moz-linear-gradient(top, 
+					rgba(200,215,220,1) 0%, 
+					rgba(227,234,237,1) 63%, 
+					rgba(242,245,246,1) 100%); /* FF3.6-15 */
+				background: -webkit-linear-gradient(top, 
+					rgba(200,215,220,1) 0%,
+					rgba(227,234,237,1) 63%,
+					rgba(242,245,246,1) 100%); /* Chrome10-25,Safari5.1-6 */
+				background: linear-gradient(to bottom, 
+					rgba(200,215,220,1) 0%,
+					rgba(227,234,237,1) 63%,
+					rgba(242,245,246,1) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+				filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#c8d7dc', 
+					endColorstr='#f2f5f6',
+					GradientType=0 ); /* IE6-9 */
+			}
+	   		table, th, td {
+	   			border-collapse: collapse;
+	   			padding: 5px;
+	   		}
+			table th:nth-child(1){
+			    border-radius: 4px 0px 0px 4px;
+			}
+			table th:nth-last-child(1){
+			    border-radius: 0px 4px 4px 0px;
+			}
+			table tr:hover {
+		        background-color: #a0e0ff !important;
+		    }
+		    .modal-backdrop.in {
+			    filter: alpha(opacity=80);
+			    opacity: .8;
+			}
+			.modal-header {
+				border-top-left-radius: 6px;
+				border-top-right-radius: 6px;
+			}
+		    .page-header {
+				font-family: 'Patua One', serif;
+				padding-bottom: 50px;
+			}
+			.msg-error {
+				color: #d9534f;
+			}
+			#RegForm {
+				padding-top: 50px;
+			}
+			#Filter {
+				margin-bottom: 15px;
+			}
+
+	   	</style>
+	</head>
+	<body class="ng-cloak" ng-app="SfdcApp">
+		<!-- AngularJS controller starts here -->
+		<div ng-controller="SfdcCtrl" class="container">
+			<!-- Header -->
+			<div class="page-header">
+				<h1>SFDC App.&nbsp;&nbsp;<apex:image id="logo" value="{!$Resource.sfdc_logo}" width="100" height="65"/></h1>
+			</div>
+
+			<!-- Modal -->
+			<div id="SuccessModal" class="modal fade" role="dialog" tabindex="-1" 
+			aria-labelledby="SuccessModalLabel" aria-hidden="true">
+				<div class="modal-dialog" role="document">
+				    <div class="modal-content">
+				      	<div class="modal-header">
+				        	<h4 class="modal-title">Well done!</h4>
+				        	<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+				        		<span aria-hidden="true">&times;</span>
+				        	</button>
+				      	</div>
+				      	<div class="modal-body">
+				        	<p>You successfully saved a new Contact.</p>
+				      	</div>
+				      	<div class="modal-footer">
+				        	<button type="button" class="btn btn-success" data-dismiss="modal">Close</button>
+				      	</div>
+				    </div>
+			 	</div>
+			</div>
+
+			<!-- Modal - the Angular way -->
+			<!--<script type="text/ng-template" id="myModal.html">
+		        <div class="modal-header">
+		            <h3 class="modal-title" id="modal-title">Well done!</h3>
+		        </div>
+		        <div class="modal-body">
+		        	<p>You successfully saved a new Contact.</p>
+		      	</div>
+		      	<div class="modal-footer">
+		        	<button type="button" class="btn btn-success" 
+		        	data-dismiss="modal" ng-click="close()">Close</button>
+		      	</div>
+		        </div>
+		    </script>-->
+
+        	<!-- Success alert -->
+			<div class="alert alert-success alert-dismissable custom-alert" role="alert" ng-show="success">
+				<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+				    <span aria-hidden="true">&times;</span>
+				</button>
+			  	<strong>Well done!</strong> You successfully saved a new Contact.
+			</div>
+
+			<!-- Error alert -->
+			<div class="alert alert-danger alert-dismissable custom-alert" role="alert" ng-show="danger">
+				<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+				    <span aria-hidden="true">&times;</span>
+				</button>
+			  	<strong>Oops!</strong> Something went wrong while saving the Contact.
+			</div>
+
+			<!-- search a contact -->
+			Search Table:<br />
+			<input type="text" ng-model="mcm.searchText" 
+			id="Filter" ng-keyup="fetchByFilter($event)"/>
+			<br />
+
+			<!-- display the contacts -->
+			<table class="table table-striped table-hover table-condensed">
+				<thead class="thead-inverse">
+					<tr>
+						<th>#</th>
+						<th>Name</th>
+						<th>Email</th>
+						<th>Phone</th>
+						<th>Department</th>
+					</tr>
+				</thead>
+				<tr ng-repeat="contact in ContactData | filter: mcm.searchText track by $index">
+					<td>{{ $index + 1 }}</td>
+					<td>{{ contact.Name }}</td>
+					<td>{{ contact.Email }}</td>
+					<td>{{ contact.Phone }}</td>
+					<td>{{ contact.Department }}</td>
+				</tr>
+			</table>
+			<br />
+
+			<!-- add a contact -->
+			<form id="RegForm"
+			name="Registration" 
+			novalidate="true" 
+			autocomplete="false"
+			ng-submit="addRow($event)">
+
+				<!-- First Name -->
+				<div class="form-group col-md-6 col-xs-12" 
+				ng-class="{ 'has-danger': Registration.firstName.$invalid && !Registration.firstName.$pristine }">
+					<label for="FirstName">First Name: </label>
+					<input id="FirstName" name="firstName" type="text" ng-model="contacts.firstName" 
+					class="form-control" ng-minlength="3" aria-describedby="firstHelp" required="true" 
+					autocomplete="off" />
+					<small id="firstHelp" class="form-text text-muted" ng-hide="Registration.firstName.$invalid && !Registration.firstName.$pristine">
+					Example: John, Jane, Mike, Lucy, etc.</small>
+					<small ng-show="Registration.firstName.$invalid && !Registration.firstName.$pristine" 
+					class="msg-error" id="FirstNameInvalid">First Name is required.</small><br 
+					ng-show="Registration.firstName.$error.minlength"/>
+					<small ng-show="Registration.firstName.$error.minlength" 
+					class="msg-error" id="FirstNameMin">First Name is too short.</small>
+				</div>
+
+				<!-- Last Name -->
+				<div class="form-group col-md-6 col-xs-12" 
+				ng-class="{ 'has-danger': Registration.lastName.$invalid && !Registration.lastName.$pristine }">
+					<label for="LastName">Last Name: </label>
+					<input id="LastName" name="lastName" type="text" ng-model="contacts.lastName" 
+					class="form-control" aria-describedby="firstHelp" required="true" autocomplete="off" />
+					<small id="firstHelp" class="form-text text-muted" ng-hide="Registration.lastName.$invalid && !Registration.lastName.$pristine">
+					Example: Smith, Douglas, Palthrow, Williams, etc.</small>
+					<small ng-show="Registration.lastName.$invalid && !Registration.lastName.$pristine" 
+					class="msg-error" id="LastNameInvalid">Last Name is required.</small><br 
+					ng-show="Registration.lastName.$error.minlength"/>
+					<small ng-show="Registration.lastName.$error.minlength" 
+					class="msg-error" id="LastNameMin">Last Name is too short.</small>
+				</div>
+
+				<!-- Email -->
+				<div class="form-group col-md-6 col-xs-12" 
+				ng-class="{ 'has-danger': Registration.email.$invalid && !Registration.email.$pristine }">
+					<label for="Email">Email: </label>
+					<input id="Email" name="email" type="email" ng-model="contacts.email" class="form-control" 
+					aria-describedby="emailHelp" required="true" autocomplete="off"/>
+					<small id="emailHelp" class="form-text text-muted" ng-hide="Registration.email.$invalid && !Registration.email.$pristine">
+					Example: first.last@example.com, hello@world.net, etc.</small>
+					<small ng-show="Registration.email.$invalid && !Registration.email.$pristine" 
+					class="msg-error" id="EmailInvalid">Enter a valid email.</small>
+				</div>
+
+				<!-- Phone -->
+				<div class="form-group col-md-6 col-xs-12" 
+				ng-class="{ 'has-danger': Registration.phone.$error.number && Registration.phone.$invalid }">
+					<label for="Phone">Phone: </label>
+					<input id="Phone" type="text" name="phone" ng-model="contacts.phone" class="form-control" ng-minlength="10" ng-maxlength="10" ng-pattern="phoneNumberPattern"
+					aria-describedby="phoneHelp" autocomplete="off"/>
+					<small id="phoneHelp" class="form-text text-muted" ng-hide="Registration.phone.$invalid">Example: +91-036-78658</small>
+					<small class="msg-error" ng-show="Registration.phone.$error.pattern" id="PhonePattern">
+					Enter a valid phone number.</small><br ng-show="(Registration.phone.$error.minlength || Registration.phone.$error.maxlength) && Registration.phone.$dirty"/>
+					<small ng-show="(Registration.phone.$error.minlength || Registration.phone.$error.maxlength) && Registration.phone.$dirty" class="msg-error" id="PhoneMinMax">
+					Phone number should be 10 digits.</small>
+				</div>
+
+				<!-- Department -->
+				<div class="form-group col-md-6 col-xs-12" 
+				ng-class="{ 'has-danger': Registration.department.$invalid && !Registration.department.$pristine }">
+					<label for="Department">Department: </label>
+					<input id="Department" type="text" ng-model="contacts.department" class="form-control" 
+					aria-describedby="deptHelp" required="true" name="department" autocomplete="off"/>
+					<small id="deptHelp" class="form-text text-muted" ng-hide="Registration.department.$invalid && !Registration.department.$pristine">
+					Example: R&amp;D, QA, CM, Back Office, etc.</small>
+					<small ng-show="Registration.department.$invalid && !Registration.department.$pristine"
+					class="msg-error" id="DeptInvalid">Department name is required.</small>
+				</div>
+
+				<div class="col-md-6 col-xs-12">
+					<!-- Submit Button -->
+					<button type="submit" ng-class="{'btn btn-danger': Registration.$invalid, 
+					'btn btn-primary': !Registration.$invalid }" ng-disabled="Registration.$invalid" id="Save">
+					Save Contact</button>
+				</div>
+
+			</form>
+
+		</div>
+
+	</body>
+	<!-- AngularJS layer -->
+	<script type="text/javascript">
+		var app = angular.module('SfdcApp', ['ui.bootstrap']);
+
+		/**
+		 * Main app factory method
+		 */
+		app.factory('VFRemotingFactory', function($q, $rootScope, $uibModal) {
+			var factory = {};
+			factory.getByFilter = function(searchText) {
+				var deferred = $q.defer();
+				getByFilterCallback(function(result) {
+					$rootScope.$apply(function() {
+						deferred.resolve(result);
+					});
+				}, searchText);
+				return deferred.promise;
+			};
+			factory.saveAndGet = function(contact) {
+				var deferred = $q.defer();
+				saveAndGetCallback(function(result) {
+					$rootScope.$apply(function() {
+						deferred.resolve(result);
+					});
+				}, contact);
+				return deferred.promise;
+			};
+			return factory;
+		});
+
+		/**
+		 * Main app Controller
+		 */
+	    app.controller('SfdcCtrl', [
+	    	'$rootScope', 
+	    	'$scope', 
+	    	'$q', 
+	    	'$log', 
+	    	'$uibModal',
+	    	'VFRemotingFactory', 
+	    	function($rootScope, $scope, $q, $log, $uibModal, VFRemotingFactory) {
+
+	    	//Controller members
+	    	$scope.contacts = {};
+	    	$scope.mcm = {};
+
+	    	//get Contacts as JSON
+	    	$scope.ContactsJSON = JSON.parse('{!JSENCODE(contactListJSON)}');
+
+	    	//build Contact fullname
+	        $scope.fullName = function() {
+	        	$log.info($scope.contacts.firstName + ' ' + $scope.contacts.lastName);
+	        	return $scope.contacts.firstName + ' ' + $scope.contacts.lastName;
+	        };
+
+	        //get Contact by Criteria
+	        $scope.fetchByFilter = function($event) {
+	        	$log.info('Get contact filtered');
+	        	if ($scope.mcm.searchText.length > 1) {
+	        		var searchTxt = $scope.mcm.searchText;
+	        		VFRemotingFactory.getByFilter(searchTxt)
+	        			.then(function(result) {
+	        				$scope.ContactData = result;
+	        			});
+	        	} else {
+	        		var searchTxt = $scope.mcm.searchText;
+	        		VFRemotingFactory.getByFilter()
+	        			.then(function(result) {
+	        				$scope.ContactData = result;
+	        			});
+	        	}
+	        };    
+
+	       	//Reset
+	        $scope.reset = function() {
+	        	$log.warn('Deleting submitted contact');
+	        	delete $scope.contacts.firstName;
+	        	delete $scope.contacts.lastName;
+	        	delete $scope.contacts.email;
+	        	delete $scope.contacts.department;
+	        	delete $scope.contacts.phone;
+	        	$scope.Registration.$setPristine(true);
+	        };
+
+	        //Add a row to the table
+	        $scope.addRow = function($event) {
+	        	$log.info('Save and get');
+	        	var contactJS = new Contact();
+	        	contactJS.firstName = $scope.contacts.firstName;
+	        	contactJS.lastName = $scope.contacts.lastName;
+	        	contactJS.email = $scope.contacts.email;
+	        	contactJS.department = $scope.contacts.department;
+	        	contactJS.phone = $scope.contacts.phone;
+	        	contactJS.name = $scope.fullName();
+        		VFRemotingFactory.saveAndGet(contactJS)
+        			.then(function(result) {
+        				$scope.ContactData = JSON.parse(result);
+        				$scope.messages = true;
+        				if ($scope.messages) {
+		        			console.log('Success');
+		        			$scope.success = true;
+		        		} else {
+		        			console.log('Error');
+		        			$scope.danger = true;
+		        		}
+        			});
+        		$scope.reset();
+	        };
+
+	   		function Contact() {
+	   			this.firstName = null,
+	   			this.lastName = null,
+	   			this.email = null,
+	   			this.department = null,
+	   			this.phone = null,
+	   			this.name = null
+	   		}
+
+		    $scope.phoneNumberPattern = (function() {
+			    var regexp = /^\(?(\d{3})\)?[ .-]?(\d{3})[ .-]?(\d{4})$/;
+			    return {
+			        test: function(value) {
+			            if( $scope.requireTel === false ) {
+			                return true;
+			            }
+			            return regexp.test(value);
+			        }
+			    };
+			})();
+
+			
+	    }]);
+
+	    /**
+	     * SFDC Remote action callbacks
+	     */
+		function getByFilterCallback(callback, searchText) {
+			if (searchText == undefined) {
+				searchText = '';
+			}
+			Visualforce.remoting.Manager.invokeAction(
+				'{!$RemoteAction.ContactsAngularJSPromises.getAllByFilter}',
+				searchText,
+				callback, {
+					escape: false,
+					timeout: 120000
+				}
+			);
+		};
+
+		function saveAndGetCallback(callback, contact) {
+			if (contact == undefined) {
+				contact = null;
+			}
+			Visualforce.remoting.Manager.invokeAction(
+				'{!$RemoteAction.ContactsAngularJSPromises.saveAndGetAll}',
+				contact,
+				callback, {
+					escape: false,
+					timeout: 120000
+				}
+			);
+		};
+
+	</script>
+	<!-- JavaScript layer -->
+	<script type="text/javascript">
+		var jq = jQuery.noConflict();
+
+		/**
+		 * Set tooltip placement dynamically
+		 */
+		setPlacement = function() {
+     		var $window = jq(window);
+     		if ($window.width() > 514)
+     			return 'right';
+     		else
+     			return 'top';
+     	};
+		
+		/**
+		 * DOM event loader
+		 */
+		jq(document).ready(function() {
+			//tooltips
+			var $placement = setPlacement();
+		    jq('#FirstName').tooltip({
+		    	trigger:'focus', 
+		    	title:'Digit a first name!',
+		    	placement:$placement
+		    });
+		    jq('#LastName').tooltip({
+		    	trigger:'focus', 
+		    	title:'Enter a last name!',
+		    	placement:$placement
+		    });
+		    jq('#Email').tooltip({
+		    	trigger:'focus', 
+		    	title:'Digit an email address!',
+		    	placement:$placement
+		    });
+		    jq('#Phone').tooltip({
+		    	trigger:'focus', 
+		    	title:'Enter a phone number!',
+		    	placement:$placement
+		    });
+		    jq('#Department').tooltip({
+		    	trigger:'focus',
+		     	title:'Enter a Department name!',
+		     	placement:$placement
+		    });
+			jq('.modal-header').css({
+				'background-color':'rgb(223, 240, 216)',
+				'color':'rgb(60, 118, 61)'
+			});
+			//Resize the Save Contact button when detects a Mobile screen 
+			var $window = jq(window);
+		    $window.resize(function resize() {
+		        if ($window.width() < 514) {
+		            return jq('#Save').addClass('btn-block');
+		        }
+		        jq('#Save').removeClass('btn-block');
+		    }).trigger('resize');
+		    //Resize the table setting new responsive class
+		    $window.resize(function resize() {
+		        if ($window.width() < 514) {
+		            return jq('table').addClass('table-responsive');
+		        }
+		        jq('table').removeClass('table-responsive');
+		    }).trigger('resize');		 
+			//Show modal after submitting the form
+			jq("form").on('submit', function() {
+			   	jq('#SuccessModal').modal('show');
+			   	/*window.setTimeout(function() {
+				    $(".custom-alert").slideUp(500, function() {
+				        $(this).remove();
+				    });
+				}, 3000);*/
+			});
+			jq("div.alert").on("click", "button.close", function() {
+			    jq(this).parent().animate({opacity: 0}, 500).hide('slow');
+			});
+		});
+
+	</script>
+	</html> 
+</apex:page>
