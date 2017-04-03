@@ -19,9 +19,10 @@
    	<apex:includeScript value="{!$Resource.Bootstrap_JS_4_0}"/>
    	<apex:stylesheet value="{!$Resource.NgBlock_UI_CSS}"/>
 	<apex:stylesheet value="{!$Resource.Bootstrap_CSS_4_0}"/>
+	<apex:stylesheet value="{!$Resource.Font_Awesome_2_0}"/>
 
-	<!-- HTML starts here -->
-	<html lang="en-US">
+	<!-- HTML5 starts here -->
+	<html lang="en-US" xmlns:ng="http://angularjs.org">
 	<head>
 		<meta charset="UTF-8" />
 		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
@@ -31,6 +32,7 @@
 
 		<!-- Stylesheet -->
 		<style type="text/css">
+
 			@import url('https://fonts.googleapis.com/css?family=Bree+Serif|Patua+One');
 			body {
 				outline: 0;
@@ -88,7 +90,6 @@
 			#Filter {
 				margin-bottom: 15px;
 			}
-
 	   	</style>
 	</head>
 	<body class="ng-cloak" ng-app="SfdcApp">
@@ -153,8 +154,9 @@
 
 			<!-- search a contact -->
 			Search Table:<br />
-			<input type="text" ng-model="mcm.searchText" 
-			id="Filter" ng-keyup="fetchByFilter($event)"/>
+			<!--<input type="text" ng-model="mcm.searchText" 
+			id="Filter" ng-keyup="fetchByFilter($event)"/>-->
+			<input type="text" ng-model="criteria" ng-change="search()" id="Filter" ng-keyup="fetchByFilter($event)"/>
 			<br />
 
 			<!-- display the contacts -->
@@ -162,26 +164,51 @@
 				<thead class="thead-inverse">
 					<tr>
 						<th>#</th>
-						<th>Name</th>
-						<th>Email</th>
-						<th>Phone</th>
-						<th>Department</th>
+						<th class="name">Name &nbsp;<a ng-click="sort_by('name')"><i class="icon-sort"></i></a></th>
+						<th class="email">Email &nbsp;<a ng-click="sort_by('email')"><i class="icon-sort"></i></a>
+						</th>
+						<th class="phone">Phone &nbsp;<a ng-click="sort_by('phone')"><i class="icon-sort"></i></a>
+						</th>
+						<th class="dept">Department &nbsp;<a ng-click="sort_by('dept')"><i class="icon-sort"></i>
+						</a></th>
 					</tr>
 				</thead>
-				<tr ng-repeat="contact in ContactData | filter: mcm.searchText track by $index">
-					<td>{{ $index + 1 }}</td>
-					<td>{{ contact.Name }}</td>
-					<td>{{ contact.Email }}</td>
-					<td>{{ contact.Phone }}</td>
-					<td>{{ contact.Department }}</td>
-				</tr>
+				<tbody>
+					<!-- <tr ng-show="ContactData.length != 0" ng-repeat="contact in ContactData | filter: query track by $index"> -->
+					<tr ng-show="pagedItems.length != 0" ng-repeat="item in pagedItems[currentPage] | orderBy:sortingOrder:reverse track by $index">
+						<td>{{ $index + 1 }}</td>
+						<td>{{ item.Name }}</td>
+						<td>{{ item.Email }}</td>
+						<td>{{ item.Phone }}</td>
+						<td>{{ item.Department }}</td>
+					</tr>
+				</tbody>
 			</table>
+			<div ng-show="pagedItems.length == 0">
+	            No data.                
+	        </div>
+			<div id="Paginator">
+            	<!-- Pagination -->
+                <ul class="pagination pagination-large pull-left">
+                    <li class="page-item" ng-class="{disabled: currentPage == 0}">
+                        <a class="page-link" ng-click="prevPage()">Prev</a>
+                    </li>
+                    <li ng-repeat="n in range(pagedItems.length)"
+                    ng-class="{active: n == currentPage}"
+                    ng-click="setPage()" class="page-item">
+                        <a class="page-link" ng-bind="n + 1">1</a>
+                    </li>
+                    <li class="page-item" ng-class="{disabled: currentPage == pagedItems.length - 1}">
+                        <a class="page-link" ng-click="nextPage()">Next</a>
+                    </li>
+                </ul>
+        	</div>
 			<br />
 
 			<!-- add a contact -->
 			<form id="RegForm"
 			name="Registration" 
-			novalidate="true" 
+			novalidate="novalidate" 
 			autocomplete="false"
 			ng-submit="addRow($event)">
 
@@ -267,6 +294,8 @@
 	</body>
 	<!-- AngularJS layer -->
 	<script type="text/javascript">
+
+		'use strict';
 		var app = angular.module('SfdcApp', ['ui.bootstrap']);
 
 		/**
@@ -292,27 +321,55 @@
 				}, contact);
 				return deferred.promise;
 			};
+			factory.deleteById = function(id) {
+				var deferred = $q.defer();
+				deleteByIdCallback(function(result) {
+					rootScope.$apply(function() {
+						deferred.resolve(result);
+					});
+				}, id);
+				return deferred.promise();
+			};
+			factory.merge = function(contact) {
+				var deferred = $q.defer();
+				mergeCallback(function(result) {
+					rootScope.$apply(function() {
+						deferred.resolve(result);
+					});
+				}, contact);
+				return deferred.promise();
+			}
 			return factory;
 		});
 
 		/**
 		 * Main app Controller
 		 */
-	    app.controller('SfdcCtrl', [
+	    var ctrl = app.controller('SfdcCtrl', [
 	    	'$rootScope', 
 	    	'$scope', 
 	    	'$q', 
 	    	'$log', 
+	    	'$filter',
 	    	'$uibModal',
 	    	'VFRemotingFactory', 
-	    	function($rootScope, $scope, $q, $log, $uibModal, VFRemotingFactory) {
+	    	function($rootScope, $scope, $q, $log, $filter, $uibModal, VFRemotingFactory) {
 
-	    	//Controller members
+	    	//Controller structured members
 	    	$scope.contacts = {};
-	    	$scope.mcm = {};
+	    	$scope.pagedItems = [];
+            $scope.filteredItems = [];
+			$scope.groupedItems = [];
+
+	    	//Controller default members
+	    	$scope.itemsPerPage = 10;
+	    	$scope.query = '';
+            $scope.currentPage = 0;
+            $scope.reverse = false;
+            $scope.sortingOrder = sortingOrder;
 
 	    	//get Contacts as JSON
-	    	$scope.ContactsJSON = JSON.parse('{!JSENCODE(contactListJSON)}');
+	    	$scope.ContactData = JSON.parse('{!JSENCODE(contactListJSON)}');
 
 	    	//build Contact fullname
 	        $scope.fullName = function() {
@@ -323,14 +380,14 @@
 	        //get Contact by Criteria
 	        $scope.fetchByFilter = function($event) {
 	        	$log.info('Get contact filtered');
-	        	if ($scope.mcm.searchText.length > 1) {
-	        		var searchTxt = $scope.mcm.searchText;
+	        	if ($scope.criteria.length > 1) {
+	        		var searchTxt = $scope.criteria;
 	        		VFRemotingFactory.getByFilter(searchTxt)
 	        			.then(function(result) {
 	        				$scope.ContactData = result;
 	        			});
 	        	} else {
-	        		var searchTxt = $scope.mcm.searchText;
+	        		var searchTxt = $scope.criteria;
 	        		VFRemotingFactory.getByFilter()
 	        			.then(function(result) {
 	        				$scope.ContactData = result;
@@ -338,7 +395,7 @@
 	        	}
 	        };    
 
-	       	//Reset
+	       	//Reset the form after insertion
 	        $scope.reset = function() {
 	        	$log.warn('Deleting submitted contact');
 	        	delete $scope.contacts.firstName;
@@ -366,13 +423,33 @@
         				if ($scope.messages) {
 		        			console.log('Success');
 		        			$scope.success = true;
+		        			//Show success modal after submitting the form
+							jq("form").on('submit', function() {
+							   	jq('#SuccessModal').modal('show');
+							});
 		        		} else {
 		        			console.log('Error');
 		        			$scope.danger = true;
+		        			//Show danger modal after submitting the form
+							jq("form").on('submit', function() {
+								jq(".modal-header").css({
+									'color':'rgb(169,68,66)',
+									'background-color':'rgb(242,222,222)'
+								});
+							   	jq('#SuccessModal').modal('show');
+							});
 		        		}
         			});
         		$scope.reset();
 	        };
+
+	        $scope.updateRow = function($event) {
+	        	
+	        }
+
+	        $scope.remove = function($event) {
+	        	
+	        }
 
 	   		function Contact() {
 	   			this.firstName = null,
@@ -383,6 +460,7 @@
 	   			this.name = null
 	   		}
 
+	   		//Phone number pattern
 		    $scope.phoneNumberPattern = (function() {
 			    var regexp = /^\(?(\d{3})\)?[ .-]?(\d{3})[ .-]?(\d{4})$/;
 			    return {
@@ -395,6 +473,98 @@
 			    };
 			})();
 
+			//Set css property dynamically
+			$scope.$watch('pagedItems', function() {
+		        if ($scope.pagedItems.length == 0) {
+		            jq("#Paginator").css('padding-top', '12px');
+		        }
+		    });
+
+		    var searchMatch = function(haystack, needle) {
+                if (!needle) {
+                    return true;
+                }
+                return haystack.toLowerCase().indexOf(needle.toLowerCase()) !== -1;
+            };
+            
+            //Initialize the Search Filters 
+            $scope.search = function() {
+                $scope.filteredItems = $filter('filter')($scope.ContactData, function(item) {
+                    for (var attr in item) {
+                        if (searchMatch(item[attr], $scope.query))
+                            return true;
+                    }
+                    return false;
+                });
+                // Define Sorting Order
+                if ($scope.sortingOrder !== '') {
+                    $scope.filteredItems = $filter('orderBy')($scope.filteredItems, $scope.sortingOrder, $scope.reverse);
+                }
+                $scope.currentPage = 0;
+                
+                // Group by pages
+                $scope.groupToPages();
+            };
+            
+            // Calculate Total Number of Pages based on Records Queried 
+            $scope.groupToPages = function() {
+                $scope.pagedItems = [];
+                for (var i=0; i<$scope.filteredItems.length; i++) {
+                    if (i % $scope.itemsPerPage === 0) {
+                        $scope.pagedItems[Math.floor(i / $scope.itemsPerPage)] = [$scope.filteredItems[i]];
+                    } else {
+                        $scope.pagedItems[Math.floor(i / $scope.itemsPerPage)].push($scope.filteredItems[i]);
+                    }
+                }
+            };
+            
+            $scope.range = function(start, end) {
+                var ret = [];
+                if (!end) {
+                    end = start;
+                    start = 0;
+                }
+                for (var i=start; i<end; i++) {
+                    ret.push(i);
+                }
+                return ret;
+            };
+            
+            $scope.prevPage = function() {
+                if ($scope.currentPage > 0) {
+                    $scope.currentPage--;
+                }
+            };
+            
+            $scope.nextPage = function() {
+                if ($scope.currentPage < $scope.pagedItems.length - 1) {
+                    $scope.currentPage++;
+                }
+            };
+            $scope.setPage = function() {
+                $scope.currentPage = this.n;
+            };
+
+            // functions have been describe process the data for display
+            $scope.search();
+            
+            // change sorting order
+            $scope.sort_by = function(newSortingOrder) {
+                if ($scope.sortingOrder == newSortingOrder) {
+                    $scope.reverse = !$scope.reverse;
+                }
+                $scope.sortingOrder = newSortingOrder;
+                
+                // icon setup
+                jq('th i').each(function() {
+                    // icon reset
+                    jq(this).removeClass().addClass('icon-sort');
+                });
+                if ($scope.reverse)
+                    jq('th.' + newSortingOrder + ' i').removeClass().addClass('icon-chevron-up');
+                else
+                    jq('th.' + newSortingOrder + ' i').removeClass().addClass('icon-chevron-down');
+            };
 			
 	    }]);
 
@@ -416,11 +586,37 @@
 		};
 
 		function saveAndGetCallback(callback, contact) {
-			if (contact == undefined) {
-				contact = null;
+			if (contact !== undefined) {
+				Visualforce.remoting.Manager.invokeAction(
+					'{!$RemoteAction.ContactsAngularJSPromises.saveAndGetAll}',
+					contact,
+					callback, {
+						escape: false,
+						timeout: 120000
+					}
+				);
+			}
+		};
+
+		function deleteByIdCallback(callback, id) {
+			if (id !== undefined && typeof id === 'string') {	
+				Visualforce.remoting.Manager.invokeAction(
+					'{!$RemoteAction.ContactsAngularJSPromises.deleteById}',
+					id,
+					callback, {
+						escape: false,
+						timeout: 120000
+					}
+				);
+			}
+		};
+
+		function mergeCallback(callback, contact) {
+			if (typeof contact === 'object') {
+				contact = JSON.stringify(contact);
 			}
 			Visualforce.remoting.Manager.invokeAction(
-				'{!$RemoteAction.ContactsAngularJSPromises.saveAndGetAll}',
+				'{!$RemoteAction.ContactsAngularJSPromises.updateContact}',
 				contact,
 				callback, {
 					escape: false,
@@ -432,18 +628,32 @@
 	</script>
 	<!-- JavaScript layer -->
 	<script type="text/javascript">
+		
 		var jq = jQuery.noConflict();
+		var sortingOrder = 'name';
+     	var $window = jq(window);
 
 		/**
 		 * Set tooltip placement dynamically
 		 */
 		setPlacement = function() {
-     		var $window = jq(window);
      		if ($window.width() > 514)
      			return 'right';
      		else
      			return 'top';
      	};
+
+     	/**
+     	 * Resize DOM element when detect Mobile screen
+     	 */
+     	reSize = function(elem, cls) {
+     		$window.resize(function resize() {
+		        if ($window.width() < 514) {
+		            return jq(elem).addClass(cls);
+		        }
+		        jq(elem).removeClass(cls);
+		    }).trigger('resize');	
+     	}
 		
 		/**
 		 * DOM event loader
@@ -456,54 +666,42 @@
 		    	title:'Digit a first name!',
 		    	placement:$placement
 		    });
+
 		    jq('#LastName').tooltip({
 		    	trigger:'focus', 
 		    	title:'Enter a last name!',
 		    	placement:$placement
 		    });
+
 		    jq('#Email').tooltip({
 		    	trigger:'focus', 
 		    	title:'Digit an email address!',
 		    	placement:$placement
 		    });
+
 		    jq('#Phone').tooltip({
 		    	trigger:'focus', 
 		    	title:'Enter a phone number!',
 		    	placement:$placement
 		    });
+
 		    jq('#Department').tooltip({
 		    	trigger:'focus',
 		     	title:'Enter a Department name!',
 		     	placement:$placement
 		    });
+		    //Default is success
 			jq('.modal-header').css({
 				'background-color':'rgb(223, 240, 216)',
 				'color':'rgb(60, 118, 61)'
 			});
-			//Resize the Save Contact button when detects a Mobile screen 
-			var $window = jq(window);
-		    $window.resize(function resize() {
-		        if ($window.width() < 514) {
-		            return jq('#Save').addClass('btn-block');
-		        }
-		        jq('#Save').removeClass('btn-block');
-		    }).trigger('resize');
+
+			//Resize the Save contact button
+			reSize('#Save', 'btn-block');
+
 		    //Resize the table setting new responsive class
-		    $window.resize(function resize() {
-		        if ($window.width() < 514) {
-		            return jq('table').addClass('table-responsive');
-		        }
-		        jq('table').removeClass('table-responsive');
-		    }).trigger('resize');		 
-			//Show modal after submitting the form
-			jq("form").on('submit', function() {
-			   	jq('#SuccessModal').modal('show');
-			   	/*window.setTimeout(function() {
-				    $(".custom-alert").slideUp(500, function() {
-				        $(this).remove();
-				    });
-				}, 3000);*/
-			});
+		    reSize('table', 'table-responsive');
+
 			jq("div.alert").on("click", "button.close", function() {
 			    jq(this).parent().animate({opacity: 0}, 500).hide('slow');
 			});
