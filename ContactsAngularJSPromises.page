@@ -84,12 +84,6 @@
 			.msg-error {
 				color: #d9534f;
 			}
-            .form-modal-body .modal-form-horizontal .form-control-label {
-                text-align: left;
-            }
-            .form-modal-body .modal-form-horizontal .form-col-sm-offset-2 {
-                margin-left: 15px;
-            }
 			#RegForm {
 				padding-top: 50px;
 			}
@@ -113,9 +107,9 @@
 				    <div class="modal-content">
 				      	<div class="modal-header">
 				        	<h4 class="modal-title" id="ModalLabel">Well done!</h4>
-				        	<button type="button" class="close" data-dismiss="modal" aria-label="Close">
-				        		<span aria-hidden="true">&times;</span>
-				        	</button>
+				        	<button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+			        		    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+			        		</button>
 				      	</div>
 				      	<div class="modal-body">
 				        	<p>You successfully saved a new Contact.</p>
@@ -225,26 +219,50 @@
 			        		<h4 class="modal-title custom_align" id="Heading">Edit this Contact</h4>
 			      		</div>
 			          	<div class="modal-body">
-			          	    <form id="UpdateForm" role="form" novalidate="true" name="editForm" autocomplete="false" ng-submit="updateRow($event)">
-			          	        <div class="form-group">
-    			          		    <label >FirstName: </label>
-    			        			<input class="form-control" type="text" placeholder="{{ formData.firstName }}" autocomplete="false" ng-model="editContact.firstName" required="false"/>
+			          	    <form id="UpdateForm" 
+			          	     role="form" 
+			          	     novalidate="true" 
+			          	     name="EditForm" 
+			          	     autocomplete="off" 
+			          	     ng-submit="updateRow($event)">
+
+			          	     	<!-- Edit first name -->
+			          	        <div class="form-group" ng-class="{ 'has-danger': EditForm.firstName.$invalid && !EditForm.firstName.$pristine }">
+    			          		    <label for="First">FirstName: </label>
+    			        			<input class="form-control" type="text" placeholder="{{ formData.firstName }}" autocomplete="off" ng-model="editContact.firstName" required="false" name="firstName" id="First"/>
+    			        			<small ng-minlength="3" ng-show="EditForm.firstName.$error.minlength" class="msg-error">First Name is too short.</small>
     			        		</div>
-    			        		<div class="form-group">
-    			          		    <label >LastName: </label>
-    			        			<input class="form-control" type="text" placeholder="{{ formData.lastName }}" autocomplete="false" ng-model="editContact.lastName" required="false"/>
+
+    			        		<!-- Edit last name -->
+    			        		<div class="form-group" ng-class="{ 'has-danger': EditForm.lastName.$invalid && !EditForm.lastName.$pristine }">
+    			          		    <label for="Last">LastName: </label>
+    			        			<input class="form-control" type="text" placeholder="{{ formData.lastName }}" autocomplete="off" ng-model="editContact.lastName" required="false" id="Last" 
+    			        			name="lastName"/>
+    			        			<small ng-minlength="3" ng-show="EditForm.lastName.$error.minlength" class="msg-error">First Name is too short.</small>
     			        		</div>
-    			        		<div class="form-group">
-    			        		    <label>Email: </label>
-    	  		        			<input class="form-control" type="email" placeholder="{{ formData.email }}" autocomplete="false" ng-model="editContact.email" required="false"/>
+
+    			        		<!-- Edit email -->
+    			        		<div class="form-group" ng-class="{ 'has-danger': EditForm.email.$invalid && !EditForm.email.$pristine }">
+    			        		    <label for="Emails">Email: </label>
+    	  		        			<input class="form-control" type="email" placeholder="{{ formData.email }}" autocomplete="off" ng-model="editContact.email" required="false" id="Emails" 
+    	  		        			name="email"/>
+    	  		        			<small ng-show="EditForm.email.$invalid && !EditForm.email.$pristine" class="msg-error" id="EmailInvalid">Enter a valid email.</small>
     			        		</div>
-    			        		<div class="form-group">
-    			        		    <label>Phone: </label>
-    	  		        			<input class="form-control" type="text" placeholder="{{ formData.phone }}" autocomplete="false" ng-model="editContact.phone" required="false"/>
+
+    			        		<!-- Edit phone -->
+    			        		<div class="form-group" ng-class="{ 'has-danger': EditForm.phone.$invalid && !EditForm.phone.$pristine }">
+    			        		    <label for="PhoneNum">Phone: </label>
+    	  		        			<input class="form-control" type="text" placeholder="{{ formData.phone }}" autocomplete="off" ng-model="editContact.phone" required="false" ng-minlength="10" ng-maxlength="10" ng-pattern="phoneNumberPattern" name="phone" id="PhoneNum"/>
+    	  		        			<small class="msg-error" ng-show="EditForm.phone.$error.pattern"> 
+    	  		        			Enter a valid phone number.</small>
+    	  		        			<br ng-show="(EditForm.phone.$error.minlength || EditForm.phone.$error.maxlength) && EditForm.phone.$dirty" />
+									<small ng-show="(EditForm.phone.$error.minlength || EditForm.phone.$error.maxlength) && EditForm.phone.$dirty" class="msg-error" id="PhoneMinMax">Phone number should be 10 digits.</small>
     			        		</div>
-    			        		<div class="form-group">
-    			        		    <label>Department: </label>
-    	  		        			<input class="form-control" type="text" placeholder="{{ formData.department }}" autocomplete="false" ng-model="editContact.department" required="false"/>
+
+    			        		<!-- Edit department -->
+    			        		<div class="form-group" ng-class="{ 'has-danger': EditForm.department.$invalid && !EditForm.department.$pristine }">
+    			        		    <label for="Dept">Department: </label>
+    	  		        			<input class="form-control" type="text" placeholder="{{ formData.department }}" autocomplete="false" ng-model="editContact.department" required="false" id="Dept" name="department"/>
     			        		</div>
 		          	        </form>
 			      		</div>
@@ -273,7 +291,7 @@
 		       
 		      			</div>
 			        	<div class="modal-footer ">
-			        		<button type="button" class="btn btn-success" ng-click="remove($event, name)"><span class="glyphicon glyphicon-ok-sign"></span> Yes
+			        		<button type="button" class="btn btn-success" ng-click="remove($event)"><span class="glyphicon glyphicon-ok-sign"></span> Yes
 			        		</button>
 			        		<button type="button" class="btn btn-default" data-dismiss="modal"><span class="glyphicon glyphicon-remove"></span> No
 			        		</button>
@@ -373,7 +391,7 @@
 			<form id="RegForm"
 			name="Registration" 
 			novalidate="novalidate" 
-			autocomplete="false"
+			autocomplete="off"
 			ng-submit="addRow($event)">
 
 				<!-- First Name -->
@@ -597,8 +615,8 @@
 		        			//Show danger modal after submitting the form
 							jq("form").on('submit', function() {
 								jq(".modal-header").css({
-									'color':'rgb(169,68,66)',
-									'background-color':'rgb(242,222,222)'
+									'color': 'rgb(169,68,66)',
+									'background-color': 'rgb(242,222,222)'
 								});
 							   	jq('#Modal').modal('show');
 							});
@@ -637,9 +655,9 @@
 	            }
 	        }
 
-	        $scope.remove = function($event, contactName) {
+	        $scope.remove = function($event) {
 	            $log.info('Remove');
-	        	var contactID = query(contactName);
+	        	var contactID = query($scope.fullName($scope.formData.firstName, $scope.formData.lastName));
 	        	if (contactID !== undefined) {
 	        	    $log.info('Removing contact id', contactID);
             		VFRemotingFactory.deleteById(contactID)
@@ -684,8 +702,10 @@
 		    $scope.fnClick = function(usr, index) { 
 		        $scope.formData = angular.copy($scope.pagedItems[index]);   //usr object will be assigned to $scope.formData...
                 $scope.formData.index = index;
+                var fullname = $scope.formData.name.trim().split(" ");
+                $scope.formData.firstName = fullname[0];
+                $scope.formData.lastName = fullname[1];
                 console.log($scope.formData);
-                return $scope.formData;
             }
 
 		    var searchMatch = function(haystack, needle) {
@@ -874,38 +894,38 @@
 			//tooltips
 			var $placement = setPlacement();
 		    jq('#FirstName').tooltip({
-		    	trigger:'focus', 
-		    	title:'Digit a first name!',
-		    	placement:$placement
+		    	trigger: 'focus', 
+		    	title: 'Digit a first name!',
+		    	placement: $placement
 		    });
 
 		    jq('#LastName').tooltip({
-		    	trigger:'focus', 
-		    	title:'Enter a last name!',
-		    	placement:$placement
+		    	trigger: 'focus', 
+		    	title: 'Enter a last name!',
+		    	placement: $placement
 		    });
 
 		    jq('#Email').tooltip({
-		    	trigger:'focus', 
-		    	title:'Digit an email address!',
-		    	placement:$placement
+		    	trigger: 'focus', 
+		    	title: 'Digit an email address!',
+		    	placement: $placement
 		    });
 
 		    jq('#Phone').tooltip({
-		    	trigger:'focus', 
-		    	title:'Enter a phone number!',
-		    	placement:$placement
+		    	trigger: 'focus', 
+		    	title: 'Enter a phone number!',
+		    	placement: $placement
 		    });
 
 		    jq('#Department').tooltip({
-		    	trigger:'focus',
-		     	title:'Enter a Department name!',
-		     	placement:$placement
+		    	trigger: 'focus',
+		     	title: 'Enter a Department name!',
+		     	placement: $placement
 		    });
 		    //Default is success
 			jq('.modal-header').css({
-				'background-color':'rgb(223, 240, 216)',
-				'color':'rgb(60, 118, 61)'
+				'background-color': 'rgb(223, 240, 216)',
+				'color': 'rgb(60, 118, 61)'
 			});
 
 			//Resize the Save contact button
