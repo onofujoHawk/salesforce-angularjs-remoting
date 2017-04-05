@@ -227,8 +227,12 @@
 			          	<div class="modal-body">
 			          	    <form id="UpdateForm" role="form" novalidate="true" name="editForm" autocomplete="false" ng-submit="updateRow($event)">
 			          	        <div class="form-group">
-    			          		    <label >Name: </label>
-    			        			<input class="form-control" type="text" placeholder="{{ formData.name }}" autocomplete="false" ng-model="editContact.name" required="false"/>
+    			          		    <label >FirstName: </label>
+    			        			<input class="form-control" type="text" placeholder="{{ formData.firstName }}" autocomplete="false" ng-model="editContact.firstName" required="false"/>
+    			        		</div>
+    			        		<div class="form-group">
+    			          		    <label >LastName: </label>
+    			        			<input class="form-control" type="text" placeholder="{{ formData.lastName }}" autocomplete="false" ng-model="editContact.lastName" required="false"/>
     			        		</div>
     			        		<div class="form-group">
     			        		    <label>Email: </label>
@@ -461,7 +465,7 @@
 		/**
 		 * Main app factory method
 		 */
-		app.factory('VFRemotingFactory', function($q, $rootScope, $uibModal) {
+		app.factory('VFRemotingFactory', function($q, $rootScope) {
 			var factory = {};
 			factory.getByFilter = function(searchText) {
 				var deferred = $q.defer();
@@ -511,9 +515,8 @@
 	    	'$q', 
 	    	'$log', 
 	    	'$filter',
-	    	'$uibModal',
 	    	'VFRemotingFactory', 
-	    	function($rootScope, $scope, $q, $log, $filter, $uibModal, VFRemotingFactory) {
+	    	function($rootScope, $scope, $q, $log, $filter, VFRemotingFactory) {
 
 	    	//Controller structured members
 	    	$scope.contacts = {};
@@ -533,9 +536,9 @@
 	    	$scope.ContactData = JSON.parse('{!JSENCODE(contactListJSON)}');
 
 	    	//build Contact fullname
-	        $scope.fullName = function() {
-	        	$log.info($scope.contacts.firstName + ' ' + $scope.contacts.lastName);
-	        	return $scope.contacts.firstName + ' ' + $scope.contacts.lastName;
+	        $scope.fullName = function(firstName, lastName) {
+	        	$log.info(firstName + ' ' + lastName);
+	        	return firstName + ' ' + lastName;
 	        };
 
 	        //get Contact by Criteria
@@ -576,7 +579,7 @@
 	        	contactJS.email = $scope.contacts.email;
 	        	contactJS.department = $scope.contacts.department;
 	        	contactJS.phone = $scope.contacts.phone;
-	        	contactJS.name = $scope.fullName();
+	        	contactJS.name = $scope.fullName($scope.contacts.firstName, $scope.contacts.lastName);
         		VFRemotingFactory.saveAndGet(contactJS)
         			.then(function(result) {
         				$scope.ContactData = JSON.parse(result);
@@ -607,11 +610,11 @@
 	        $scope.updateRow = function($event) {
 	            $log.info('Update');
 	            var contactJS = new Contact();
-	            if ($scope.editContact.name !== null) {
-	                contactJS.name = $scope.editContact.name;
-	                var fullName = $scope.editContact.name.trim().split(" ");
-	                contactJS.firstName = fullName[0];
-	                contactJS.lastName = fullName[1];
+	            if ($scope.editContact.firstName !== null) {
+	                contactJS.firstName = $scope.editContact.firstName;
+	            }
+	            if ($scope.editContact.lastName !== null) {
+	                contactJS.lastName = $scope.editContact.lastName;
 	            }
 	            if ($scope.editContact.email !== null) {
 	                contactJS.email = $scope.editContact.email;
@@ -619,10 +622,11 @@
 	            if ($scope.editContact.phone !== null) {
 	                contactJS.phone = $scope.editContact.phone;
 	            }
-	            if ($scope.editConact.department !== null) {
+	            if ($scope.editContact.department !== null) {
 	                contactJS.department = $scope.editContact.department;
 	            }
 	            if (!isEmpty(contactJS)) {
+	                contactJS.name = $scope.fullName($scope.editContact.firstName, $scope.editContact.lastName);
 	                VFRemotingFactory.merge(contactJS)
             			.then(function(result) {
             			    $log.info('Success update');
