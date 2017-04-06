@@ -145,4 +145,8 @@ global with sharing class ContactsAngularJSPromises {
                 LIMIT 200];
     }
 
+    private static Integer count() {
+        return [SELECT COUNT() FROM Contact];
+    }
+
 }
