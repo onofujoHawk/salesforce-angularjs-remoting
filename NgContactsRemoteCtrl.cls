@@ -1,15 +1,40 @@
 /**
  * AngularJS promises - Remote Action controller
  */
-global with sharing class ContactsAngularJSPromises {
+global with sharing class NgContactsRemoteCtrl {
+    global PageReference goToContacts {get; private set;}
+    global PageReference goToAccounts {get; private set;}
+    global PageReference goToHomepage {get; private set;}
+
+    static global String[] fieldsContact = new String[] {
+        'Id', 
+        'Name', 
+        'Department', 
+        'Email', 
+        'Phone', 
+        'AccountId', 
+        'Account.Name'
+    };
+
+    global NgContactsRemoteCtrl() {
+        System.debug('init: start');
+        /*--- CONTACTS PAGE ---*/
+        goToContacts = Page.NgContactsRemote;
+        goToContacts.setRedirect(true);
+        /*--- ACCOUNT PAGE ---*/
+        goToAccounts = Page.NgAccountsRemote;
+        goToAccounts.setRedirect(true);
+        /*--- HOMEPAGE ---*/
+        goToHomepage = new PageReference('https://eu11.salesforce.com/setup/forcecomHomepage.apexp?setupid=ForceCom');
+        goToHomepage.setRedirect(true);
+        System.debug('init: done');
+    }
 
     global static String getContactListJSON() {
         List<InstanceWrapper> instance = new List<InstanceWrapper>();
         for (Contact c : contacts()) {
-
-            instance.add(new InstanceWrapper(c.ID, c.Name, c.Department, c.Email, c.Phone, c.Account.Name));
+            instance.add(new InstanceWrapper(c.Id, c.Name, c.Department, c.Email, c.Phone, c.Account.Name));
         }
-
         return JSON.serializePretty(instance);
 
     }
@@ -23,7 +48,7 @@ global with sharing class ContactsAngularJSPromises {
     global static List<Contact> getAllByFilter(String searchText) {
         String searchString = '%' + searchText + '%';
         try {
-            return [SELECT ID, 
+            return [SELECT Id, 
                            Name,
                            Email,
                            Phone,
@@ -42,8 +67,9 @@ global with sharing class ContactsAngularJSPromises {
     @RemoteAction
     global static String saveAndGetAll(Contact cont) {
         try {
+
             insert cont;
-            return findAll();
+            return findAll();       
 
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'An error has occured during Saving.');
@@ -54,9 +80,11 @@ global with sharing class ContactsAngularJSPromises {
     @RemoteAction
     global static String deleteById(String ID) {
         try {
-          Contact cont = Database.Query('SELECT ' + getObjectFields('Contact') + ' FROM Contact WHERE ID = \'' + ID + '\' LIMIT 1');
-          delete cont;
-          return findAll();
+            
+            Contact cont = Database.Query('SELECT ' + getObjectFields('Contact') + ' FROM Contact WHERE ID = \'' + ID + '\' LIMIT 1');
+            System.debug('Deleting... ' + cont);
+            delete cont;
+            return findAll();   
 
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'An error has occured during Deleting.');
@@ -67,10 +95,12 @@ global with sharing class ContactsAngularJSPromises {
     @RemoteAction
     global static List<Contact> updateContact(String contactJSON) {
         try {
-          Contact cont = (Contact) JSON.deserialize(contactJSON, Contact.class);
-          update cont;
-          return contacts();
-
+          
+            Contact cont = (Contact) JSON.deserialize(contactJSON, Contact.class);
+            System.debug('Updating... ' + cont);
+            update cont;
+            return contacts();
+            
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'An error has occured during Merge.');
             return null;
@@ -80,20 +110,20 @@ global with sharing class ContactsAngularJSPromises {
     //Utility class
     global class InstanceWrapper {
 
-        String ID;
+        String Id;
         String Name;
         String Department;
         String Email;
         String Phone;
-        String AccountID;
+        String AccountId;
         String AccountName;
 
         global InstanceWrapper() {
             Name = Department = Email = Phone = AccountID = AccountName = '';
         }
 
-        global InstanceWrapper(String ID, String Name, String Department, String Email, String Phone, String AccountName) {
-            this.ID = ID;
+        global InstanceWrapper(String Id, String Name, String Department, String Email, String Phone, String AccountName) {
+            this.Id = Id;
             this.Name = Name;
             this.Department = Department;
             this.Email = Email;
@@ -101,7 +131,7 @@ global with sharing class ContactsAngularJSPromises {
             this.AccountName = AccountName;
             String pattern = '%' + AccountName + '%';
             if (AccountName != null) {
-                this.AccountID = [SELECT ID
+                this.AccountId = [SELECT ID
                                   FROM Account
                                   WHERE Name LIKE :pattern
                                   LIMIT 1].ID;
@@ -114,12 +144,12 @@ global with sharing class ContactsAngularJSPromises {
 
         String fieldnames = '';
 
-        Map < String, Schema.SObjectType > m = Schema.getGlobalDescribe();
+        Map <String, Schema.SObjectType> m = Schema.getGlobalDescribe();
         Schema.SObjectType s = m.get(objName);
         Schema.DescribeSObjectResult r = s.getDescribe();
 
         //get fields
-        Map < String, Schema.SObjectField > fields = r.fields.getMap();
+        Map <String, Schema.SObjectField> fields = r.fields.getMap();
         for (string field : fields.keySet()) {
             if (fieldnames == '') {
                 fieldnames = field;
@@ -133,12 +163,12 @@ global with sharing class ContactsAngularJSPromises {
     }
 
     private static List<Contact> contacts() {
-        return [SELECT ID,
+        return [SELECT Id,
                        Name,
                        Email,
                        Phone,
                        Department,
-                       AccountID,
+                       AccountId,
                        Account.Name
                 FROM Contact
                 ORDER BY Name
@@ -148,5 +178,33 @@ global with sharing class ContactsAngularJSPromises {
     private static Integer count() {
         return [SELECT COUNT() FROM Contact];
     }
+
+    static private Boolean isAccessible() {
+        Map<String, Schema.SObjectField> fieldsToken = getMap();
+        for (String field : fieldsContact) {
+            if (!fieldsToken.get(field).getDescribe().isAccessible()) {
+                throw new System.NoAccessException();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    static private Boolean isUpdateable() {
+        Map<String, Schema.SObjectField> fieldsToken = getMap();
+        for (String field : fieldsContact) {
+            if (!fieldsToken.get(field).getDescribe().isUpdateable()) {
+                throw new System.NoAccessException();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static Map<String, Schema.SObjectField> getMap() {
+        Map<String, Schema.SObjectField> fieldsToken = Schema.SObjectType.Contact.fields.getMap();
+        return fieldsToken;
+    }
+
 
 }
