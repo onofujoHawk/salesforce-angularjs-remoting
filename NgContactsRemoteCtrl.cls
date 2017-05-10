@@ -59,7 +59,7 @@ global with sharing class NgContactsRemoteCtrl {
                     WHERE Name LIKE :searchString];
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'An error has occured during Fetch.');
+            System.debug(LoggingLevel.ERROR, 'An error has occured during Fetch: ' + e.getMessage() + ' caused by ' + e.getCause() + ' on line ' + e.getLineNumber());
             return null;
         }
     }    
@@ -72,7 +72,7 @@ global with sharing class NgContactsRemoteCtrl {
             return findAll();       
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'An error has occured during Saving.');
+            System.debug(LoggingLevel.ERROR, 'An error has occured during Saving: ' + e.getMessage() + ' caused by ' + e.getCause() + ' on line ' + e.getLineNumber());
             return null;
         }
     }
@@ -87,7 +87,7 @@ global with sharing class NgContactsRemoteCtrl {
             return findAll();   
 
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'An error has occured during Deleting.');
+            System.debug(LoggingLevel.ERROR, 'An error has occured during Deletion: ' + e.getMessage() + ' caused by ' + e.getCause() + ' on line ' + e.getLineNumber());
             return null;
         }
     }
@@ -102,7 +102,7 @@ global with sharing class NgContactsRemoteCtrl {
             return contacts();
             
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'An error has occured during Merge.');
+            System.debug(LoggingLevel.ERROR, 'An error has occured during Merging: ' + e.getMessage() + ' caused by ' + e.getCause() + ' on line ' + e.getLineNumber());
             return null;
         }
     }
