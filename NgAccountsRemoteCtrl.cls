@@ -29,15 +29,13 @@ global with sharing class NgAccountsRemoteCtrl {
         System.debug('init: done');
     }
    
-    //No Remote
+    //No RemoteAction, use Wrapper instead
     global static String getAccountListJSON() {
-        List<InstanceWrapper> instance = new List<InstanceWrapper>();
+        List <InstanceWrapper> instance = new List <InstanceWrapper>();
         for (Account a : accounts()) {
 
             instance.add(new InstanceWrapper(a.Id, a.Name, a.BillingStreet, a.NumberOfEmployees, a.AnnualRevenue, a.Industry));
-
         }
-
         return JSON.serializePretty(instance);
     }
     
@@ -48,38 +46,55 @@ global with sharing class NgAccountsRemoteCtrl {
 
     @RemoteAction
     global static String deleteById(String ID) {
-        try {
+        Try {
             
-            Account acc = Database.Query('SELECT ' + getObjectFields('Contact') + ' FROM Contact WHERE ID = \'' + ID + '\' LIMIT 1');
-            System.debug('Deleting... ' + acc);
-            delete acc;
-            return findAll();
+            Map <String,Account> accountMap = new Map <String,Account>();
+            Account account = Database.Query('SELECT ' + getObjectFields('Account') + ' FROM Account WHERE ID = \'' + ID + '\' LIMIT 1');
+            System.debug('Deleting Account... ' + account);
+            delete account;
+            Account[] accounts = accounts();
+            for (Account acc : accounts) {
+                accountMap.put(acc.Id, acc);
+            }
+            if (!accountMap.containsKey(Id)) {
+                return findAll();
+            } else {
+                return 'Account not successfully deleted.';
+            }
 
-        } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'An error has occured during Deleting.');
+        } Catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'An error has occured during Deletion: ' + e.getMessage() + ' caused by ' + e.getCause() + ' on line ' + e.getLineNumber());
             return null;
         }
     }
 
     @RemoteAction
     global static List<Account> updateAccount(String accountJSON) {
-        try {
+        Try {
           
-            Account acc = (Account) JSON.deserialize(accountJSON, Account.class);
-            System.debug('Updating... ' + acc);
-            update acc;
-            return accounts();
+            Account accountNew = (Account) JSON.deserialize(accountJSON, Account.class);
+            System.debug('Account to update... ' + accountNew);
+            Account accountOld = Database.Query('SELECT ' + getObjectFields('Account') + ' FROM Account WHERE ID = \'' + accountNew.Id + '\'');
+            if (accountNew != accountOld) {
+                System.debug('Updating Account... ' + accountNew);
+                update accountNew;
+                return accounts();    
+            } else {
+                System.debug('New Account and Old Account are the same, cannot update...');
+                return null;
+            }
           
-        } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'An error has occured during Merge.');
+        } Catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'An error has occured during Merge: ' + e.getMessage() + ' caused by ' + e.getCause() + ' on line ' + e.getLineNumber());
             return null;
         }
     }
 
     @RemoteAction
     global static List<Account> getAllByFilter(String searchText) {
-        String searchString = '%' + searchText + '%';
-        try {
+        String pattern = '%' + searchText + '%';
+        Try {
+
             return [SELECT Id,
                            Name,
                            BillingStreet,
@@ -87,9 +102,9 @@ global with sharing class NgAccountsRemoteCtrl {
                            AnnualRevenue,
                            Industry
                     FROM Account
-                    WHERE Name LIKE :searchString];
+                    WHERE Name LIKE :pattern];
 
-        } catch (Exception e) {
+        } Catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'An error has occured during Fetch.');
             return null;
         }
@@ -97,7 +112,6 @@ global with sharing class NgAccountsRemoteCtrl {
 
     //Utility class
     global class InstanceWrapper {
-
         String Id;
         String Name;
         String BillingStreet;
@@ -111,13 +125,19 @@ global with sharing class NgAccountsRemoteCtrl {
             AnnualRevenue = null;
         }
 
-        global InstanceWrapper(String Id, String Name, String BillingStreet, Integer NumberOfEmployees, Decimal AnnualRevenue, String Industry) {
-            this.Id = Id;
-            this.Name = Name;
-            this.BillingStreet = BillingStreet;
-            this.NumberOfEmployees = NumberOfEmployees;
-            this.AnnualRevenue = AnnualRevenue;
-            this.Industry = Industry;
+        global InstanceWrapper(String Id, 
+            String Name, 
+            String BillingStreet, 
+            Integer NumberOfEmployees, 
+            Decimal AnnualRevenue, 
+            String Industry) {
+            
+            this.Id                 = Id;
+            this.Name               = Name;
+            this.BillingStreet      = BillingStreet;
+            this.NumberOfEmployees  = NumberOfEmployees;
+            this.AnnualRevenue      = AnnualRevenue;
+            this.Industry           = Industry;
         }
 
     }

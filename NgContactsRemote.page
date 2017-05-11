@@ -31,7 +31,7 @@
         <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
         <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
         <meta name="viewport" content="width=device-width" />
-        <title>SFDC Contacts</title>
+        <title>Contacts</title>
 
         <!-- Stylesheet -->
         <style type="text/css">
@@ -107,8 +107,9 @@
                                  role="form" 
                                  novalidate="true" 
                                  name="EditForm" 
-                                 autocomplete="off" 
-                                 ng-submit="updateRow($event)">
+                                 autocomplete="off">
+
+                                 <!-- ng-submit="updateRow($event)" -->
 
                                     <!-- Edit first name -->
                                     <div class="form-group" ng-class="{ 'has-danger': EditForm.editFirstName.$invalid && !EditForm.editFirstName.$pristine }">
@@ -163,7 +164,8 @@
                                 </form>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-warning btn-lg" style="width: 100%;">
+                                <button type="button" class="btn btn-warning btn-lg" style="width: 100%;" 
+                                ng-click="updateRow($event)">
                                     <span class="glyphicon glyphicon-ok-sign"></span> Update
                                 </button>
                             </div>
@@ -202,7 +204,7 @@
                 </div>
 
                 <!-- Alert message -->
-                <alert ng-repeat="alert in alerts" type="{{alert.type}}" class="alert-fade" 
+                <alert ng-repeat="alert in alerts" type="{{ alert.type }}" class="alert-fade" 
                 close="closeAlert($index)">
                     <strong>{{ alert.label }}</strong>&nbsp;&nbsp;{{ alert.msg }}
                 </alert>
@@ -254,8 +256,7 @@
                                     <!-- <tr ng-show="ContactData.length != 0" ng-repeat="contact in ContactData | filter: query track by $index"> -->
 
                                     <tr ng-show="pagedItems.length != 0" ng-repeat="item in pagedItems[currentPage] | orderBy:sortingOrder:reverse track by $index">
-                                        <td style="font-weight: bold;">
-                                        {{ $index + 1 }}</td>
+                                        <td style="font-weight: bold;">{{ $index + 1 }}</td>
                                         <td>{{ item.Name }}</td>
                                         <td>{{ item.Email }}</td>
                                         <td>{{ item.Phone }}</td>
@@ -279,7 +280,7 @@
                             </table>
 
                             <div ng-show="pagedItems.length == 0">
-                                No data.                
+                                No data found.                
                             </div>
 
                         </div>
@@ -293,19 +294,19 @@
                                     <!-- Pagination -->
                                     <div id="Paginator">
                                         <ul class="pagination pagination-large pull-right">
-                                            <li class="page-item" ng-class="{disabled: currentPage == 0}">
+                                            <li class="page-item" ng-class="{ disabled: currentPage == 0 }">
                                                 <a class="page-link visible-xs" ng-click="prevPage()">
                                                     <span class="glyphicon glyphicon-chevron-left">
                                                     </span>
                                                 </a>
                                             </li>
                                             <li ng-repeat="n in range(pagedItems.length)"
-                                            ng-class="{active: n == currentPage}"
+                                            ng-class="{ active: n == currentPage }"
                                             ng-click="setPage()" class="page-item">
                                                 <a class="page-link" ng-bind="n + 1">1</a>
                                             </li>
                                             <li class="page-item" 
-                                            ng-class="{disabled: currentPage == pagedItems.length - 1}">
+                                            ng-class="{ disabled: currentPage == pagedItems.length - 1 }">
                                                 <a class="page-link visible-xs" ng-click="nextPage()">
                                                     <span class="glyphicon glyphicon-chevron-right">
                                                     </span>
@@ -403,7 +404,7 @@
 
                     <div class="col-md-6 col-xs-12">
                         <!-- Submit Button -->
-                        <button type="submit" ng-class="{'btn btn-danger': Registration.$invalid, 
+                        <button type="submit" ng-class="{ 'btn btn-danger': Registration.$invalid, 
                         'btn btn-primary': !Registration.$invalid }" ng-disabled="Registration.$invalid" id="Save">
                         <span class="glyphicon glyphicon-ok-sign"></span> Save Contact</button>
                     </div>
@@ -496,6 +497,15 @@
          */
         app.factory('VFRemotingFactory', function($q, $rootScope) {
             var factory = {};
+            factory.findAll = function() {
+                var deferred = $q.defer();
+                findAllCallback(function(result) {
+                    $rootScope.$apply(function() {
+                        deferred.resolve(result);
+                    });
+                });
+                return deferred.promise;
+            };
             factory.getByFilter = function(searchText) {
                 var deferred = $q.defer();
                 getByFilterCallback(function(result) {
@@ -540,30 +550,40 @@
          */
         var ctrl = app.controller('ContactCtrl', ['$rootScope', '$scope', '$q', '$window', '$log', '$filter', 
             'VFRemotingFactory', function($rootScope, $scope, $q, $window, $log, $filter, VFRemotingFactory) {
+            debugger;
 
             //Controller structured members
-            $scope.contacts = {};
-            $scope.pagedItems = [];
-            $scope.filteredItems = [];
-            $scope.groupedItems = [];
+            $scope.contacts         = {};
+            $scope.pagedItems       = [];
+            $scope.filteredItems    = [];
+            $scope.groupedItems     = [];
 
             //Controller default members
-            $scope.itemsPerPage = 10;
-            $scope.query = "";
-            $scope.currentPage = 0;
-            $scope.reverse = false;
-            $scope.sortingOrder = sortingOrder;
+            $scope.itemsPerPage     = 10;
+            $scope.query            = "";
+            $scope.currentPage      = 0;
+            $scope.reverse          = false;
+            $scope.sortingOrder     = sortingOrder;
 
-            $scope.alerts = [];
-            var count = 1;
+            $scope.alerts           = [];
+            var count               = 1;
 
             //get Contacts as JSON
             $scope.ContactData = JSON.parse('{! JSENCODE(contactListJSON) }');
 
             //build Contact fullname
             $scope.fullName = function(firstName, lastName) {
-                $log.info(firstName + ' ' + lastName);
-                return firstName + ' ' + lastName;
+                return firstName + " " + lastName;
+            };
+
+            function getAllContacts() {
+                $log.log('Find all');
+                VFRemotingFactory.findAll()
+                    .then(function(result) {
+                        $scope.ContactData = result;
+                    }, function() {
+                        window.alert('Error in getting contacts list');
+                    });
             };
 
             //get Contact by Criteria
@@ -587,8 +607,8 @@
             };    
 
             //Reset the form after insertion
-            $scope.reset = function() {
-                $log.warn('Deleting submitted contact');
+            function clearFields() {
+                $log.log('Deleting submitted contact');
                 delete $scope.contacts.firstName;
                 delete $scope.contacts.lastName;
                 delete $scope.contacts.email;
@@ -601,18 +621,18 @@
             $scope.addRow = function($event) {
                 $log.info('Save and get');
                 var contactJS = new Contact();
-                contactJS.firstName = $scope.contacts.firstName;
-                contactJS.lastName = $scope.contacts.lastName;
-                contactJS.email = $scope.contacts.email;
-                contactJS.department = $scope.contacts.department;
-                contactJS.phone = $scope.contacts.phone;
-                contactJS.name = $scope.fullName($scope.contacts.firstName, $scope.contacts.lastName);
+                contactJS.firstName     = $scope.contacts.firstName;
+                contactJS.lastName      = $scope.contacts.lastName;
+                contactJS.email         = $scope.contacts.email;
+                contactJS.department    = $scope.contacts.department;
+                contactJS.phone         = $scope.contacts.phone;
+                contactJS.name          = $scope.fullName($scope.contacts.firstName, $scope.contacts.lastName);
                 VFRemotingFactory.saveAndGet(contactJS)
                     .then(function(result) {
                         $log.log('Callback insertion. result: ', result);
-                        if (result === null) {
+                        if (result === saveFailMsg || result == null) {
                             $log.error('result is null or empty');
-                            $scope.openAlert('warning', 'Warning!', 'Cannot save this Record.');
+                            $scope.openAlert('warning', 'Warning!', saveFailMsg);
                         } else {
                             delete $scope.ContactData;
                             $scope.ContactData = JSON.parse(result);
@@ -624,42 +644,44 @@
                         $scope.openAlert('danger', 'Error!', 'An error has occurred while inserting a Contact.');
                     });
 
-                $scope.reset();
+                clearFields();
 
             };
 
             $scope.updateRow = function($event) {
-                $log.info('Update');
+                $log.info('Update this contact', $scope.formData);
                 var contactJS = new Contact();
-                var copy = angular.copy($scope.formData);
-                if ($scope.contacts.firstName !== null) {
-                    contactJS.firstName = $scope.contacts.firstName;
+                if (!isEmpty($scope.contacts)) {
+                    if ($scope.contacts.firstName !== null) {
+                        contactJS.firstName = $scope.contacts.firstName;
+                    }
+                    if ($scope.contacts.lastName !== null) {
+                        contactJS.lastName = $scope.contacts.lastName;
+                    }
+                    if ($scope.contacts.email !== null) {
+                        contactJS.email = $scope.contacts.email;
+                    }
+                    if ($scope.contacts.phone !== null) {
+                        contactJS.phone = $scope.contacts.phone;
+                    }
+                    if ($scope.contacts.department !== null) {
+                        contactJS.department = $scope.contacts.department;
+                    }
+                    if ($scope.contacts.firstName !== null && $scope.contacts.lastName !== null) {
+                        var first = $scope.contacts.firstName;
+                        var last = $scope.contacts.lastName;
+                        contactJS.name = $scope.fullName(first, last);
+                    }
+                    //Set the id
+                    contactJS.id = $scope.formData.Id;
                 }
-                if ($scope.contacts.lastName !== null) {
-                    contactJS.lastName = $scope.contacts.lastName;
-                }
-                if ($scope.contacts.email !== null) {
-                    contactJS.email = $scope.contacts.email;
-                }
-                if ($scope.contacts.phone !== null) {
-                    contactJS.phone = $scope.contacts.phone;
-                }
-                if ($scope.contacts.department !== null) {
-                    contactJS.department = $scope.contacts.department;
-                }
-                if ($scope.contacts.firstName !== null && $scope.contacts.lastName !== null) {
-                    var first = $scope.contacts.firstName;
-                    var last = $scope.contacts.lastName;
-                    contactJS.name = $scope.fullName(first, last);
-                }
-                $log.info('Contact to update ' + contactJS);
-                if (!isEmpty(contactJS) && !equals(contactJS, $scope.formData)) {
+                if ( !isEmpty(contactJS) && !equals(contactJS, $scope.formData) ) {
                     VFRemotingFactory.merge(contactJS)
                         .then(function(result) {
-                            $log.info('Callback update. result: ' + result);
+                            $log.info('Callback update. result: ' + JSON.stringify(result));
                             if (result === null) {
                                 $log.error('result is null or empty');
-                                $scope.openAlert('warning', 'Warning!', 'Cannot update this Record.');
+                                $scope.openAlert('warning', 'Warning!', mergeFailMsg);
                             } else {
                                 delete $scope.ContactData;
                                 $scope.ContactData = result;
@@ -672,12 +694,12 @@
                         });
 
                     //Close modal after async call
-                    hideModal('#update');
+                    hideModal('#edit');
 
                 } else {
                     $log.warn('Nothing to update');
                     //Close modal after async call
-                    hideModal('#update');
+                    hideModal('#edit');
                     $scope.openAlert('warning', 'Warning!', 'Nothing to update here.');
                 }
             }
@@ -689,13 +711,14 @@
                 if (contactID !== undefined) {
                     VFRemotingFactory.deleteById(contactID)
                         .then(function(result) {
-                            $log.log('Callback delete. result: ' + JSON.parse(result));
-                            if (JSON.parse(result) === null) {
+                            $log.log('Callback delete. result: ' + result);
+                            var response = JSON.parse(result);
+                            if (response === deleteFailMsg || response == null) {
                                 $log.error('result is null or empty');
-                                $scope.openAlert('warning', 'Warning!', 'Cannot delete this Record.');
+                                $scope.openAlert('warning', 'Warning!', deleteFailMsg);
                             } else {
                                 delete $scope.ContactData;
-                                $scope.ContactData = JSON.parse(result);
+                                $scope.ContactData = response;
                                 $scope.openAlert('success', 'Success!', 'Contact removed successfully.');
                             }
                         }, 
@@ -709,17 +732,19 @@
 
                 } else {
                     $log.warn('contactID field is empty');
+                    //Close modal after async call
+                    hideModal('#delete');
                 }
             }
 
             //Contact object
             function Contact() {
-                this.firstName = null,
-                this.lastName = null,
-                this.email = null,
+                this.firstName  = null,
+                this.lastName   = null,
+                this.email      = null,
                 this.department = null,
-                this.phone = null,
-                this.name = null
+                this.phone      = null,
+                this.name       = null
             }
 
             //Phone number pattern
@@ -742,8 +767,8 @@
                 $scope.formData.Index = index;
                 var fullname = $scope.formData.Name.split(" ");
                 //Build first and last names
-                $scope.formData.FirstName = fullname[0];
-                $scope.formData.LastName = fullname[1];
+                $scope.formData.FirstName   = fullname[0];
+                $scope.formData.LastName    = fullname[1];
             }
 
             var searchMatch = function(haystack, needle) {
@@ -846,11 +871,11 @@
                 $scope.alerts.splice(index, 1);
             };
 
-            $scope.openAlert = function(type, labl, msg) {
+            $scope.openAlert = function(type, label, msg) {
                 $scope.alerts.push({
                     type: type,
                     msg: msg,
-                    label: labl
+                    label: label
                 });
 
             };
@@ -862,6 +887,16 @@
         /**
          * SFDC Remote action callbacks
          */
+        function findAllCallback(callback) {
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.NgContactsRemoteCtrl.findAll}',
+                callback, {
+                    escape: false,
+                    timeout: 120000
+                }
+            );
+        };
+
         function getByFilterCallback(callback, searchText) {
             if (searchText == undefined) {
                 searchText = '';
@@ -920,9 +955,12 @@
     <!-- JavaScript layer -->
     <script type="text/javascript">
 
-        var jq = jQuery.noConflict();
-        var sortingOrder = 'name';
-        var $window = jq(window);
+        var jq                  = jQuery.noConflict();
+        var $window             = jq(window);
+        var sortingOrder        = 'name';
+        var saveFailMsg         = "An error has occurred, Contact not successfully persisted.";
+        var mergeFailMsg        = "An error has occurred, Contact not successfully updated.";
+        var deleteFailMsg       = "An error has occurred, Contact not successfully deleted.";
 
         /**
          * Set tooltip placement dynamically
@@ -989,33 +1027,33 @@
             //tooltips
             var $placement = setPlacement();
             jq('#FirstName').tooltip({
-                trigger: 'focus', 
-                title: 'Digit a first name!',
-                placement: $placement
+                trigger:    'focus', 
+                title:      'Digit a first name!',
+                placement:  $placement
             });
 
             jq('#LastName').tooltip({
-                trigger: 'focus', 
-                title: 'Enter a last name!',
-                placement: $placement
+                trigger:    'focus', 
+                title:      'Enter a last name!',
+                placement:  $placement
             });
 
             jq('#Email').tooltip({
-                trigger: 'focus', 
-                title: 'Digit an email address!',
-                placement: $placement
+                trigger:    'focus', 
+                title:      'Digit an email address!',
+                placement:  $placement
             });
 
             jq('#Phone').tooltip({
-                trigger: 'focus', 
-                title: 'Enter a phone number!',
-                placement: $placement
+                trigger:    'focus', 
+                title:      'Enter a phone number!',
+                placement:  $placement
             });
 
             jq('#Department').tooltip({
-                trigger: 'focus',
-                title: 'Enter a Department name!',
-                placement: $placement
+                trigger:    'focus',
+                title:      'Enter a Department name!',
+                placement:  $placement
             });
 
             jq("[data-toggle=tooltip]").tooltip();
@@ -1037,7 +1075,7 @@
         
         function isEmpty(obj) {
             for(var prop in obj) {
-                if(obj.hasOwnProperty(prop))
+                if(obj.hasOwnProperty(prop) && obj[prop] !== null)
                 return false;
             }
             return true;

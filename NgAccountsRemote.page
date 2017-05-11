@@ -31,7 +31,7 @@
         <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
         <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
         <meta name="viewport" content="width=device-width" />
-        <title>SFDC Accounts</title>
+        <title>Accounts</title>
 
         <!-- Stylesheet -->
         <style type="text/css">
@@ -105,8 +105,9 @@
                                  role="form" 
                                  novalidate="true" 
                                  name="EditForm" 
-                                 autocomplete="off" 
-                                 ng-submit="updateRow($event)">
+                                 autocomplete="off">
+
+                                    <!-- ng-submit="updateRow($event)" -->
 
                                     <!-- Edit name -->
                                     <div class="form-group" ng-class="{ 'has-danger': EditForm.editName.$invalid && !EditForm.editName.$pristine }">
@@ -161,7 +162,8 @@
                                 </form>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-warning btn-lg" style="width: 100%;">
+                                <button type="button" class="btn btn-warning btn-lg" style="width: 100%;"
+                                ng-click="updateRow($event)">
                                     <span class="glyphicon glyphicon-ok-sign"></span> Update
                                 </button>
                             </div>
@@ -200,7 +202,7 @@
                 </div>
 
                 <!-- Alert message -->
-                <alert ng-repeat="alert in alerts" type="{{alert.type}}" class="alert-fade" 
+                <alert ng-repeat="alert in alerts" type="{{ alert.type }}" class="alert-fade" 
                 close="closeAlert($index)">
                     <strong>{{ alert.label }}</strong>&nbsp;&nbsp;{{ alert.msg }}
                 </alert>
@@ -279,7 +281,7 @@
 			                </table>
 
 			                <div ng-show="pagedItems.length == 0">
-			                    No data.                
+			                    No data found.                
 			                </div>
 
                         </div>
@@ -295,7 +297,7 @@
                                         
                                         <ul class="pagination pagination-large pull-right">
                                         	<!-- left -->
-                                            <li class="page-item" ng-class="{disabled: currentPage == 0}">
+                                            <li class="page-item" ng-class="{ disabled: currentPage == 0 }">
                                                 <a class="page-link visible-xs" ng-click="prevPage()">
                                                     <span class="glyphicon glyphicon-chevron-left">
                                                     </span>
@@ -303,13 +305,13 @@
                                             </li>
                                             <!-- numbers -->
                                             <li ng-repeat="n in range(pagedItems.length)"
-                                            ng-class="{active: n == currentPage}"
+                                            ng-class="{ active: n == currentPage }"
                                             ng-click="setPage()" class="page-item hidden-xs">
                                                 <a class="page-link" ng-bind="n + 1">1</a>
                                             </li>
                                             <!-- right -->
                                             <li class="page-item" 
-                                            ng-class="{disabled: currentPage == pagedItems.length - 1}">
+                                            ng-class="{ disabled: currentPage == pagedItems.length - 1 }">
                                                 <a class="page-link visible-xs" ng-click="nextPage()">
                                                     <span class="glyphicon glyphicon-chevron-right">
                                                     </span>
@@ -412,6 +414,15 @@
          */
         app.factory('VFRemotingFactory', function($q, $rootScope) {
             var factory = {};
+            factory.findAll = function() {
+                var deferred = $q.defer();
+                findAllCallback(function(result) {
+                    $rootScope.$apply(function() {
+                        deferred.resolve(result);
+                    });
+                });
+                return deferred.promise;
+            };
             factory.getByFilter = function(searchText) {
                 var deferred = $q.defer();
                 getByFilterCallback(function(result) {
@@ -447,25 +458,36 @@
          */
         var ctrl = app.controller('AccountCtrl', ['$rootScope', '$scope', '$q', '$log', '$filter', 
         	'VFRemotingFactory', function($rootScope, $scope, $q, $log, $filter, VFRemotingFactory) {
+            debugger;
 
             //Controller structured members
-            $scope.accounts = {};
-            $scope.pagedItems = [];
-            $scope.filteredItems = [];
-            $scope.groupedItems = [];
+            $scope.accounts         = {};
+            $scope.pagedItems       = [];
+            $scope.filteredItems    = [];
+            $scope.groupedItems     = [];
 
             //Controller default members
-            $scope.itemsPerPage = 10;
-            $scope.query = "";
-            $scope.currentPage = 0;
-            $scope.reverse = false;
-            $scope.sortingOrder = sortingOrder;
+            $scope.itemsPerPage     = 10;            
+            $scope.currentPage      = 0;
+            $scope.reverse          = false;
+            $scope.sortingOrder     = sortingOrder;
+            $scope.query            = "";
 
-            $scope.alerts = [];
-            var count = 1;
+            $scope.alerts           = [];
+            var count               = 1;
 
             //get Contacts as JSON
             $scope.AccountData = JSON.parse('{! JSENCODE(accountListJSON) }');
+
+            function getAllUsers() {
+                $log.log('Find all');
+                VFRemotingFactory.findAll()
+                    .then(function(result) {
+                        $scope.ContactData = result;
+                    }, function() {
+                        window.alert('Error in getting accounts list');
+                    });
+            };
 
             //get Contact by Criteria
             $scope.fetchByFilter = function($event) {
@@ -474,44 +496,49 @@
                     var searchTxt = $scope.criteria;
                     VFRemotingFactory.getByFilter(searchTxt)
                         .then(function(result) {
+                            delete $scope.AccountData;
                             $scope.AccountData = result;
                         });
                 } else {
                     var searchTxt = $scope.criteria;
                     VFRemotingFactory.getByFilter()
                         .then(function(result) {
+                            delete $scope.AccountData;
                             $scope.AccountData = result;
                         });
                 }
             };    
 
             $scope.updateRow = function($event) {
-                $log.info('Update');
+                $log.info('Update this account', $scope.formData);
                 var accountJS = new Account();
                 var copy = angular.copy($scope.formData);
-                if ($scope.accounts.name !== null) {
-                	accountJS.name = $scope.accounts.name;
+                if (!isEmpty($scope.accounts)) {
+                    if ($scope.accounts.name !== null) {
+                        accountJS.name = $scope.accounts.name;
+                    }
+                    if ($scope.accounts.billingStreet !== null) {
+                        accountJS.billingStreet = $scope.accounts.billingStreet;
+                    }
+                    if ($scope.accounts.industry !== null) {
+                        accountJS.industry = $scope.accounts.industry;
+                    }
+                    if ($scope.accounts.numberOfEmployees !== null) {
+                        accountJS.numberOfEmployees = $scope.accounts.numberOfEmployees;
+                    }
+                    if ($scope.accounts.annualRevenue !== null) {
+                        accountJS.annualRevenue = $scope.accounts.annualRevenue;
+                    }
+                    //Set the id
+                    accountJS.id = $scope.formData.Id;
                 }
-                if ($scope.accounts.billingStreet !== null) {
-                    accountJS.billingStreet = $scope.accounts.billingStreet;
-                }
-                if ($scope.accounts.industry !== null) {
-                    accountJS.industry = $scope.accounts.industry;
-                }
-                if ($scope.accounts.numberOfEmployees !== null) {
-                    accountJS.numberOfEmployees = $scope.accounts.numberOfEmployees;
-                }
-                if ($scope.accounts.annualRevenue !== null) {
-                    accountJS.annualRevenue = $scope.accounts.annualRevenue;
-                }
-                $log.info('Account to update ' + accountJS);
-                if (!isEmpty(accountJS) && !equals(accountJS, $scope.formData)) {
+                if ( !isEmpty(accountJS) && !equals(accountJS, $scope.formData) ) {
                     VFRemotingFactory.merge(accountJS)
                         .then(function(result) {
-                            $log.info('Callback update. result: ' + result);
+                            $log.info('Callback update. result: ' + JSON.stringify(result));
                             if (result === null) {
                                 $log.error('result is null or empty');
-                                $scope.openAlert('warning', 'Warning!', 'Cannot update this Record.');
+                                $scope.openAlert('warning', 'Warning!', mergeFailMsg);
                             } else {
                                 delete $scope.ContactData;
                                 $scope.ContactData = result;
@@ -524,12 +551,12 @@
                         });
 
                     //Close modal after async call
-                    hideModal('#update');
+                    hideModal('#edit');
 
                 } else {
                     $log.warn('Nothing to update');
                     //Close modal after async call
-                    hideModal('#update');
+                    hideModal('#edit');
                     $scope.openAlert('warning', 'Warning!', 'Nothing to update here.');
                 }
             }
@@ -541,13 +568,14 @@
                 if (accountID !== undefined) {
                     VFRemotingFactory.deleteById(accountID)
                         .then(function(result) {
-                            $log.log('Callback delete. result: ' + JSON.parse(result));
-                            if (JSON.parse(result) === null) {
+                            $log.log('Callback delete. result: ' + result);
+                            var response = JSON.parse(result);
+                            if (response === deleteFailMsg || response == null) {
                                 $log.error('result is null or empty');
-                                $scope.openAlert('warning', 'Warning!', 'Cannot delete this Record.');
+                                $scope.openAlert('warning', 'Warning!', deleteFailMsg);
                             } else {
                                 delete $scope.AccountData;
-                                $scope.AccountData = JSON.parse(result);
+                                $scope.AccountData = response;
                                 $scope.openAlert('success', 'Success!', 'Contact removed successfully.');
                             }
                         }, 
@@ -561,16 +589,18 @@
 
                 } else {
                     $log.warn('accountID field is empty');
+                    //Close modal after async call
+                    hideModal('#delete');
                 }
             }
 
             //Account object
             function Account() {
-                this.name = null,
-                this.billingStreet = null,
-                this.numberOfEmployees = null,
-                this.annualRevenue = null,
-                this.industry = null
+                this.name               = null,
+                this.billingStreet      = null,
+                this.numberOfEmployees  = null,
+                this.annualRevenue      = null,
+                this.industry           = null
             }
 
             $scope.fnClick = function(usr, index) { 
@@ -680,11 +710,11 @@
                 $scope.alerts.splice(index, 1);
             };
 
-            $scope.openAlert = function(type, labl, msg) {
+            $scope.openAlert = function(type, label, msg) {
                 $scope.alerts.push({
                     type: type,
                     msg: msg,
-                    label: labl
+                    label: label
                 });
 
             };
@@ -697,6 +727,16 @@
         /**
          * SFDC Remote action callbacks
          */
+        function findAllCallback(callback) {
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.NgAccountsRemoteCtrl.findAll}',
+                callback, {
+                    escape: false,
+                    timeout: 120000
+                }
+            );
+        };
+
         function getByFilterCallback(callback, searchText) {
             if (searchText == undefined) {
                 searchText = '';
@@ -742,9 +782,11 @@
     <!-- JavaScript layer -->
     <script type="text/javascript">
 
-        var jq = jQuery.noConflict();
-        var sortingOrder = 'name';
-        var $window = jq(window);
+        var jq              = jQuery.noConflict();
+        var $window         = jq(window);
+        var sortingOrder    = 'name';
+        var mergeFailMsg    = "An error has occurred, Account not successfully updated.";
+        var deleteFailMsg   = "An error has occurred, Account not successfully deleted.";
 
         /**
          * Set tooltip placement dynamically
@@ -823,7 +865,7 @@
         
         function isEmpty(obj) {
             for(var prop in obj) {
-                if(obj.hasOwnProperty(prop))
+                if(obj.hasOwnProperty(prop) && obj[prop] !== null)
                 return false;
             }
             return true;
