@@ -18,11 +18,23 @@
     <apex:includeScript value="{!$Resource.Tether_JS_min}"/>
     <apex:includeScript value="{!$Resource.Bootstrap_JS_4_0}"/>
     <apex:includeScript value="{!$Resource.Angular_Locale_enUS}"/>
+    <!-- Angular animations -->
     <apex:includeScript value="{!$Resource.AngularAnimate_1_5_8}"/>
+    <!-- -->
+    <!-- jQuery table exporter -->
+    <apex:includeScript value="{!$Resource.jQTable_Export}" />
+    <apex:includeScript value="{!$Resource.jQ_Base64}" />
+    <apex:includeScript value="{!$Resource.jQBase64Encode}" />
+    <apex:includeScript value="{!$Resource.jQ_sPrintf}" />
+    <apex:includeScript value="{!$Resource.jQ_Pdf}" />
+    <!-- -->
     <apex:stylesheet value="{!$Resource.NgBlock_UI_CSS}"/>
     <apex:stylesheet value="{!$Resource.Bootstrap_CSS_4_0}"/>
     <apex:stylesheet value="{!$Resource.Font_Awesome_2_0}"/>
+    <apex:stylesheet value="{!$Resource.Animate_CSS}"/>
+    <!-- Custom CSS -->
     <apex:stylesheet value="{!$Resource.Custom_NgRemote}"/>
+    <!-- -->
 
     <!-- HTML5 starts here -->
     <html lang="en-US" xmlns:ng="http://angularjs.org">
@@ -43,11 +55,6 @@
                 padding-bottom: 5px !important;
                 border-bottom: 2px solid !important;    
             }
-            /*.vcenter {
-                display: inline-block !important;
-                vertical-align: middle !important;
-                float: none !important;
-            }*/
             table tr td:last-child {
                 border-right-width: 1px;
             }
@@ -130,10 +137,10 @@
                                         <label for="NumEmp" class="custom-font">Number of Employees: </label>
                                         <input class="form-control" type="text" placeholder="{{ formData.NumberOfEmployees }}" autocomplete="off" ng-model="accounts.numberOfEmployees" required="false" id="NumEmp" 
                                         name="editNumOfEmp" ng-pattern="onlyNumbers" />
-                                        <small ng-show="EditForm.editNumOfEmp.$error.pattern" class="msg-error" 
-                                        id="NumEmpInvalid">Only numbers are allowed here.</small>
-                                        <small ng-show="EditForm.editBillingStreet.$error.minlength" 
-                                        class="msg-error">Number of Employees cannot be zero.</small>
+                                        <small ng-show="EditForm.editNumOfEmp.$error.pattern" class="msg-error">
+                                        Only numbers are allowed here.</small>
+                                        <small ng-show="accounts.numberOfEmployees === 0" class="msg-error">
+                                        Number of Employees cannot be zero.</small>
                                     </div>
 
                                     <!-- Edit annual revenue -->
@@ -146,23 +153,42 @@
                                         autocomplete="off" 
                                         ng-model="accounts.annualRevenue" 
                                         required="false" 
+                                        ng-pattern="onlyNumbers"
+                                        ng-minlength="3"
+                                        ng-maxlength="8"
                                         name="editAnnualRevenue" 
                                         id="AnnualRevenue" />
-
+                                        <small ng-show="EditForm.editAnnualRevenue.$error.pattern" class="msg-error"
+                                        >Only numbers are allowed here.</small>
+                                        <small ng-show="accounts.numberOfEmployees === 0" class="msg-error">
+                                        Number of Employees cannot be zero.</small>
+                                        <small ng-show="(EditForm.editAnnualRevenue.$error.minlength || EditForm.editAnnualRevenue.$error.maxlength) && EditForm.editAnnualRevenue.$dirty" class="msg-error">
+                                        Annual Revenue must be between 3 and 10 digits.</small>
                                     </div>
 
                                     <!-- Edit industry -->
                                     <div class="form-group" ng-class="{ 'has-danger': EditForm.editIndustry.$invalid && !EditForm.editIndustry.$pristine }">
                                         <label for="Industry" class="custom-font">Industry: </label>
-                                        <input class="form-control" type="text" placeholder="{{ formData.Industry }}" autocomplete="false" ng-model="accounts.industry" required="false" 
-                                        id="Industry" name="editIndustry"/>
+                                        <input 
+                                        class="form-control" 
+                                        type="text" 
+                                        placeholder="{{ formData.Industry }}" 
+                                        autocomplete="false" 
+                                        ng-model="accounts.industry" 
+                                        required="false" 
+                                        id="Industry" 
+                                        ng-minlength="3"
+                                        name="editIndustry"/>
+                                        <small ng-show="EditForm.editName.$error.minlength" class="msg-error">Industry name is too short.</small>
                                     </div>
 
 
                                 </form>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-warning btn-lg" style="width: 100%;"
+                                <button type="button" class="btn btn-warning btn-lg" 
+                                ng-class="{ 'btn btn-danger': Registration.$invalid, 
+                                'btn btn-primary': !Registration.$invalid }" style="width: 100%;" 
                                 ng-click="updateRow($event)">
                                     <span class="glyphicon glyphicon-ok-sign"></span> Update
                                 </button>
@@ -230,7 +256,7 @@
                         <div class="panel-body">
 
 	                        <!-- display the contacts -->
-			                <table cellpadding="0" cellspacing="0" border="0" 
+			                <table cellpadding="0" cellspacing="0" border="0" id="Accounts"
 			                class="table table-striped table-list" width="100%">
 			                    <thead class="thead-inverse">
 			                        <tr>
@@ -263,19 +289,19 @@
 			                            <td>{{ item.AnnualRevenue | currency: 'USD$' }}</td>
 			                            <td>{{ item.Industry }}</td>
 			                            <td>
-			                                <p>
-			                                    <button class="btn btn-outline-primary btn-xs" data-title="Edit" data-toggle="modal" data-target="#edit" ng-click="fnClick(item, $index)">
-			                                        <small><span class="glyphicon glyphicon-pencil"></span></small>
-			                                    </button>
-			                                </p>
-			                            </td>
-			                            <td>
-			                                <p>
-			                                    <button class="btn btn-outline-danger btn-xs" data-title="Delete" data-toggle="modal" data-target="#delete" ng-click="fnClick(item, $index)">
-			                                        <small><span class="glyphicon glyphicon-trash"></span></small>
-			                                    </button>
-			                                </p>
-			                            </td>
+                                            <p>
+                                                <button class="btn btn-outline-primary btn-sm" data-title="Edit" data-toggle="modal" data-target="#edit" ng-click="fnClick(item, $index)">
+                                                    <small><span class="glyphicon glyphicon-pencil"></span></small>
+                                                </button>
+                                            </p>
+                                        </td>
+                                        <td>
+                                            <p>
+                                                <button class="btn btn-outline-danger btn-sm" data-title="Delete" data-toggle="modal" data-target="#delete" ng-click="fnClick(item, $index)">
+                                                    <small><span class="glyphicon glyphicon-trash"></span></small>
+                                                </button>
+                                            </p>
+                                        </td>
 			                        </tr>
 			                    </tbody>
 			                </table>
@@ -288,28 +314,95 @@
                         <!-- FOOTER -->
                         <div class="panel-footer" ng-hide="pagedItems.length == 0">
                             <div class="row">
-                                <div id="Page" class="col col-xs-6" style="font-weight: bold;">
+                                <div class="col col-md-2 col-lg-2 col-xs-6 col-sm-6">
+                                    <div class="btn-group dropup btn-group-sm" role="group" id="showBtnGroup">
+                                        <!-- Button exporter -->
+                                        <div class="dropdown">
+                                            <button class="btn btn-warning btn-sm dropdown-toggle" 
+                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" 
+                                            id="dropBtn"><span class="glyphicon glyphicon-menu-hamburger"></span>
+                                                Export Table Data
+                                            </button>
+                                            <ul class="dropdown-menu" role="menu" aria-labelledby="dropBtn">
+                                                <h6 class="dropdown-header">Data exporter</h6>
+                                                <li>
+                                                    <a href="#" ng-click ="export_as_json()" class="dropdown-item"> 
+                                                        <!-- <img src='icons/json.png' width='24px' /> -->
+                                                        <apex:image id="json" value="{!$Resource.json}" 
+                                                        width="24px"/> JSON
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a href="#" ng-click ="export_as_json_escape()" 
+                                                    class="dropdown-item"> 
+                                                        <!-- <img src='icons/json.png' width='24px' /> -->
+                                                        <apex:image id="json_escape" value="{!$Resource.json}" 
+                                                        width="24px"/> JSON (with Escape)
+                                                    </a>
+                                                </li>
+                                                <li class="dropdown-divider"></li>
+                                                <li>
+                                                    <a href="#" ng-click ="export_as_sql()" class="dropdown-item"> 
+                                                        <!-- <img src='icons/csv.png' width='24px'/> -->
+                                                        <apex:image id="sql" value="{!$Resource.sql}" width="24px"/> SQL
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a href="#" ng-click ="export_as_csv()" class="dropdown-item"> 
+                                                        <!-- <img src='icons/csv.png' width='24px'/> -->
+                                                        <apex:image id="csv" value="{!$Resource.csv}" width="24px"/> CSV
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a href="#" ng-click ="export_as_txt()" class="dropdown-item"> 
+                                                        <!-- <img src='icons/csv.png' width='24px'/> -->
+                                                        <apex:image id="txt" value="{!$Resource.txt}" width="24px"/> TXT
+                                                    </a>
+                                                </li>
+                                                <li class="dropdown-divider"></li>
+                                                <li>
+                                                    <a href="#" ng-click="export_as_pdf()" class="dropdown-item"> 
+                                                        <!-- <img src='icons/pdf.png' width='24px' /> -->
+                                                        <apex:image id="pdf" value="{!$Resource.pdf}" width="24px"/> PDF
+                                                    </a>
+                                                </li>
+                                                <li class="dropdown-divider"></li>
+                                                <li>
+                                                    <a href="#" ng-click ="export_as_word()" class="dropdown-item"> 
+                                                        <!-- <img src='icons/xls.png' width='24px' /> --> 
+                                                        <apex:image id="word" value="{!$Resource.word}" 
+                                                        width="24px"/> Word
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a href="#" ng-click ="export_as_xls()" class="dropdown-item"> 
+                                                        <!-- <img src='icons/xls.png' width='24px' /> --> 
+                                                        <apex:image id="xls" value="{!$Resource.xls}" width="24px"/> XLS
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="Page" class="col col-md-5 col-lg-5 hidden-xs pull-right" 
+                                style="font-weight: bold;">
                                     Page {{ currentPage+1 }} of {{ pagedItems.length }}
                                 </div>
-                                <div class="col col-xs-6">
+                                <div class="col col-xs-6 col-sm-6 col-md-5 col-lg-5">
                                     <!-- Pagination -->
                                     <div id="Paginator">
-                                        
                                         <ul class="pagination pagination-large pull-right">
-                                        	<!-- left -->
                                             <li class="page-item" ng-class="{ disabled: currentPage == 0 }">
                                                 <a class="page-link visible-xs" ng-click="prevPage()">
                                                     <span class="glyphicon glyphicon-chevron-left">
                                                     </span>
                                                 </a>
                                             </li>
-                                            <!-- numbers -->
                                             <li ng-repeat="n in range(pagedItems.length)"
                                             ng-class="{ active: n == currentPage }"
-                                            ng-click="setPage()" class="page-item hidden-xs">
+                                            ng-click="setPage()" class="page-item">
                                                 <a class="page-link" ng-bind="n + 1">1</a>
                                             </li>
-                                            <!-- right -->
                                             <li class="page-item" 
                                             ng-class="{ disabled: currentPage == pagedItems.length - 1 }">
                                                 <a class="page-link visible-xs" ng-click="nextPage()">
@@ -318,7 +411,6 @@
                                                 </a>
                                             </li>
                                         </ul>
-
                                     </div>
                                 </div>
                                 <!-- end paginator -->
@@ -458,13 +550,13 @@
          */
         var ctrl = app.controller('AccountCtrl', ['$rootScope', '$scope', '$q', '$log', '$filter', 
         	'VFRemotingFactory', function($rootScope, $scope, $q, $log, $filter, VFRemotingFactory) {
-            debugger;
 
             //Controller structured members
             $scope.accounts         = {};
             $scope.pagedItems       = [];
             $scope.filteredItems    = [];
             $scope.groupedItems     = [];
+            $scope.alerts           = [];
 
             //Controller default members
             $scope.itemsPerPage     = 10;            
@@ -472,9 +564,7 @@
             $scope.reverse          = false;
             $scope.sortingOrder     = sortingOrder;
             $scope.query            = "";
-
-            $scope.alerts           = [];
-            var count               = 1;
+            $scope.onlyNumbers      = /^\d+$/;
 
             //get Contacts as JSON
             $scope.AccountData = JSON.parse('{! JSENCODE(accountListJSON) }');
@@ -689,20 +779,20 @@
                 $scope.sortingOrder = newSortingOrder;
                 
                 // icon setup
-                jq('th i').each(function() {
+                jQ('th i').each(function() {
                     // icon reset
-                    jq(this).removeClass().addClass('icon-sort');
+                    jQ(this).removeClass().addClass('icon-sort');
                 });
                 if ($scope.reverse)
-                    jq('th.' + newSortingOrder + ' i').removeClass().addClass('icon-chevron-up');
+                    jQ('th.' + newSortingOrder + ' i').removeClass().addClass('icon-chevron-up');
                 else
-                    jq('th.' + newSortingOrder + ' i').removeClass().addClass('icon-chevron-down');
+                    jQ('th.' + newSortingOrder + ' i').removeClass().addClass('icon-chevron-down');
             };
 
             //Set css property dynamically
             $scope.$watch('pagedItems', function() {
                 if ($scope.pagedItems.length == 0) {
-                    jq("#Paginator").css('padding-top', '12px');
+                    jQ("#Paginator").css('padding-top', '12px');
                 }
             });
 
@@ -712,13 +802,45 @@
 
             $scope.openAlert = function(type, label, msg) {
                 $scope.alerts.push({
-                    type: type,
-                    msg: msg,
-                    label: label
+                    type:   type,
+                    msg:    msg,
+                    label:  label
                 });
 
             };
 
+            //Table exporters utilities
+            $scope.export_as_pdf            = function() {
+                return jQ("#Accounts").tableExport({type:'pdf',pdfFontSize:'7',escape:'false'});
+            };
+
+            $scope.export_as_json           = function() {
+                return jQ("#Accounts").tableExport({type:'json',escape:'false'});
+            };
+
+            $scope.export_as_csv            = function() {
+                return jQ("#Accounts").tableExport({type:'csv',escape:'false'});
+            };
+
+            $scope.export_as_xls            = function() {
+                return jQ("#Accounts").tableExport({type:'excel',escape:'false'});
+            };
+
+            $scope.export_as_word           = function() {
+                return jQ("#Accounts").tableExport({type:'doc',escape:'false'});
+            };
+
+            $scope.export_as_json_escape    = function() {
+                return jQ("#Accounts").tableExport({type:'json',escape:'true'});
+            };
+
+            $scope.export_as_sql            = function() {
+                return jQ("#Accounts").tableExport({type:'sql',tableName:'Account'});
+            };
+
+            $scope.export_as_txt            = function() {
+                return jQ("#Accounts").tableExport({type:'txt',escape:'false'});
+            };
 
             
             
@@ -782,11 +904,17 @@
     <!-- JavaScript layer -->
     <script type="text/javascript">
 
-        var jq              = jQuery.noConflict();
-        var $window         = jq(window);
+        /*---- VARIABLES ----*/
+
+        var jQ              = jQuery.noConflict();
+        var $window         = jQ(window);
         var sortingOrder    = 'name';
+
+        /*---- ALERT MESSAGES ----*/
+
         var mergeFailMsg    = "An error has occurred, Account not successfully updated.";
         var deleteFailMsg   = "An error has occurred, Account not successfully deleted.";
+
 
         /**
          * Set tooltip placement dynamically
@@ -809,7 +937,7 @@
                 if (!sfId.startsWith(".") && !sfId.startsWith("#")) {
                     sfId = '.' + sfId;
                 }
-                jq(sfId).modal('hide');
+                jQ(sfId).modal('hide');
             }
         }
 
@@ -826,23 +954,23 @@
         reSize = function(elem, cls) {
             $window.resize(function resize() {
                 if ($window.width() < 514) {
-                    return jq(elem).addClass(cls);
+                    return jQ(elem).addClass(cls);
                 }
-                jq(elem).removeClass(cls);
+                jQ(elem).removeClass(cls);
             }).trigger('resize');   
         }
         
         /**
          * DOM event loader
          */
-        jq(document).ready(function() {
+        jQ(document).ready(function() {
         	//Dynamic active li
         	var $url = window.location.href.toLowerCase();
             if ($url.includes('account')) {
-                var $li = jq('ul.menu.list-inline > li.list-inline-item');
+                var $li = jQ('ul.menu.list-inline > li.list-inline-item');
                 for (var i=0; i<$li.length; i++) {
                     if ($li[i].innerText.toLowerCase().includes('account')) {
-                        jq($li[i]).children().css('color', '#7dabdb').addClass('underline');
+                        jQ($li[i]).children().css('color', '#7dabdb').addClass('underline');
                     }
                 }
             }
@@ -856,9 +984,19 @@
             hidePagination('Page');
             
             //Animation for alert when clicking on close button
-            jq("div.alert").on("click", "button.close", function() {
-                jq(this).parent().animate({opacity: 0}, 500).hide('slow');
+            jQ("div.alert").on("click", "button.close", function() {
+                jQ(this).parent().animate({opacity: 0}, 500).hide('slow');
             });
+
+            //Dynamic drop button based on window scroll
+            jQ(window).scroll(function() {
+                var scrollTop = jQ("body").scrollTop();
+                if (scrollTop < 800) {
+                    jQ("#showBtnGroup").removeClass('dropdown').addClass('dropup');
+                } else {    
+                    jQ("#showBtnGroup").removeClass('dropup').addClass('dropdown');        
+                }        
+            });   
         });
 
         /*----- UTILS -----*/

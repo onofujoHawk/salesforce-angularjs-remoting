@@ -13,16 +13,27 @@
     <!-- Static Resources -->
     <apex:includeScript value="{!$Resource.JQuery_3_1_0}"/>
     <apex:includeScript value="{!$Resource.AngularJS_1_5_8}"/>
-    <apex:includeScript value="{!$Resource.UI_Bootstrap_0_13_0}"/>
     <apex:includeScript value="{!$Resource.NgBlock_UI_JS}"/>
     <apex:includeScript value="{!$Resource.Tether_JS_min}"/>
     <apex:includeScript value="{!$Resource.Bootstrap_JS_4_0}"/>
+    <!-- AngularJS Utilities -->
     <apex:includeScript value="{!$Resource.Angular_Locale_enUS}"/>
     <apex:includeScript value="{!$Resource.AngularAnimate_1_5_8}"/>
+    <apex:includeScript value="{!$Resource.UI_Bootstrap_0_13_0}"/>
+    <!-- -->
+    <!-- jQuery table exporter -->
+    <apex:includeScript value="{!$Resource.jQTable_Export}" />
+    <apex:includeScript value="{!$Resource.jQ_Base64}" />
+    <apex:includeScript value="{!$Resource.jQBase64Encode}" />
+    <apex:includeScript value="{!$Resource.jQ_sPrintf}" />
+    <apex:includeScript value="{!$Resource.jQ_Pdf}" />
+    <!-- -->
     <apex:stylesheet value="{!$Resource.NgBlock_UI_CSS}"/>
     <apex:stylesheet value="{!$Resource.Bootstrap_CSS_4_0}"/>
     <apex:stylesheet value="{!$Resource.Font_Awesome_2_0}"/>
+    <!-- Custom CSS -->
     <apex:stylesheet value="{!$Resource.Custom_NgRemote}"/>
+    <!-- -->
 
     <!-- HTML5 starts here -->
     <html lang="en-US" xmlns:ng="http://angularjs.org">
@@ -43,11 +54,6 @@
                 padding-bottom: 5px !important;
                 border-bottom: 2px solid !important;    
             }
-            /*.vcenter {
-                display: inline-block !important;
-                vertical-align: middle !important;
-                float: none !important;
-            }*/
             table tr td:last-child {
                 border-right-width: 1px;
             }
@@ -164,8 +170,8 @@
                                 </form>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-warning btn-lg" style="width: 100%;" 
-                                ng-click="updateRow($event)">
+                                <button type="button" class="btn btn-warning btn-lg" style="width: 100%;"
+                                ng-class="{ 'btn btn-danger': Registration.$invalid, 'btn btn-primary': !Registration.$invalid }" ng-click="updateRow($event)">
                                     <span class="glyphicon glyphicon-ok-sign"></span> Update
                                 </button>
                             </div>
@@ -215,17 +221,18 @@
                         <!-- HEADING -->
                         <div class="panel-heading">
                             <div class="row">
+
                                 <div class="col col-xs-6">
                                     <h3 class="panel-title">Contacts</h3>
                                 </div>
+                            
                                 <div class="col col-xs-6 pull-right form-group">
-
                                     <!-- search a contact -->
                                     <input type="text" ng-model="criteria" ng-change="search()" id="Filter" 
                                     ng-keyup="fetchByFilter($event)" placeholder="Search..."
                                     class="form-control" ng-class="{ 'not_found': pagedItems.length == 0 }"/>
-
                                 </div>
+                                
                             </div>
                         </div>
                         <!-- BODY -->
@@ -235,7 +242,7 @@
                             id="Filter" ng-keyup="fetchByFilter($event)"/>-->
                             
                             <!-- display the contacts -->
-                            <table cellpadding="0" cellspacing="0" border="0" 
+                            <table cellpadding="0" cellspacing="0" border="0" id="Contacts" 
                             class="table table-striped table-list" width="100%">
                                 <thead class="thead-inverse">
                                     <tr>
@@ -263,14 +270,14 @@
                                         <td>{{ item.Department }}</td>
                                         <td>
                                             <p>
-                                                <button class="btn btn-outline-primary btn-xs" data-title="Edit" data-toggle="modal" data-target="#edit" ng-click="fnClick(item, $index)">
+                                                <button class="btn btn-outline-primary btn-sm" data-title="Edit" data-toggle="modal" data-target="#edit" ng-click="fnClick(item, $index)">
                                                     <small><span class="glyphicon glyphicon-pencil"></span></small>
                                                 </button>
                                             </p>
                                         </td>
                                         <td>
                                             <p>
-                                                <button class="btn btn-outline-danger btn-xs" data-title="Delete" data-toggle="modal" data-target="#delete" ng-click="fnClick(item, $index)">
+                                                <button class="btn btn-outline-danger btn-sm" data-title="Delete" data-toggle="modal" data-target="#delete" ng-click="fnClick(item, $index)">
                                                     <small><span class="glyphicon glyphicon-trash"></span></small>
                                                 </button>
                                             </p>
@@ -287,10 +294,81 @@
                         <!-- FOOTER -->
                         <div class="panel-footer" ng-hide="pagedItems.length == 0">
                             <div class="row">
-                                <div id="Page" class="col col-xs-6" style="font-weight: bold;">
+                                <div class="col col-md-2 col-lg-2 col-xs-6 col-sm-6">
+                                    <div class="btn-group dropup btn-group-sm" role="group" id="showBtnGroup">
+                                        <!-- Button exporter -->
+                                        <div class="dropdown">
+                                            <button class="btn btn-warning btn-sm dropdown-toggle" 
+                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" 
+                                            id="dropBtn"><span class="glyphicon glyphicon-menu-hamburger"></span>
+                                                Export Table Data
+                                            </button>
+                                            <ul class="dropdown-menu" role="menu" aria-labelledby="dropBtn">
+                                                <h6 class="dropdown-header">Data exporter</h6>
+                                                <li>
+                                                    <a href="#" ng-click ="export_as_json()" class="dropdown-item"> 
+                                                        <!-- <img src='icons/json.png' width='24px' /> -->
+                                                        <apex:image id="json" value="{!$Resource.json}" 
+                                                        width="24px"/> JSON
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a href="#" ng-click ="export_as_json_escape()" 
+                                                    class="dropdown-item"> 
+                                                        <!-- <img src='icons/json.png' width='24px' /> -->
+                                                        <apex:image id="json_escape" value="{!$Resource.json}" 
+                                                        width="24px"/> JSON (with Escape)
+                                                    </a>
+                                                </li>
+                                                <li class="dropdown-divider"></li>
+                                                <li>
+                                                    <a href="#" ng-click ="export_as_sql()" class="dropdown-item"> 
+                                                        <!-- <img src='icons/csv.png' width='24px'/> -->
+                                                        <apex:image id="sql" value="{!$Resource.sql}" width="24px"/> SQL
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a href="#" ng-click ="export_as_csv()" class="dropdown-item"> 
+                                                        <!-- <img src='icons/csv.png' width='24px'/> -->
+                                                        <apex:image id="csv" value="{!$Resource.csv}" width="24px"/> CSV
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a href="#" ng-click ="export_as_txt()" class="dropdown-item"> 
+                                                        <!-- <img src='icons/csv.png' width='24px'/> -->
+                                                        <apex:image id="txt" value="{!$Resource.txt}" width="24px"/> TXT
+                                                    </a>
+                                                </li>
+                                                <li class="dropdown-divider"></li>
+                                                <li>
+                                                    <a href="#" ng-click="export_as_pdf()" class="dropdown-item"> 
+                                                        <!-- <img src='icons/pdf.png' width='24px' /> -->
+                                                        <apex:image id="pdf" value="{!$Resource.pdf}" width="24px"/> PDF
+                                                    </a>
+                                                </li>
+                                                <li class="dropdown-divider"></li>
+                                                <li>
+                                                    <a href="#" ng-click ="export_as_word()" class="dropdown-item"> 
+                                                        <!-- <img src='icons/xls.png' width='24px' /> --> 
+                                                        <apex:image id="word" value="{!$Resource.word}" 
+                                                        width="24px"/> Word
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a href="#" ng-click ="export_as_xls()" class="dropdown-item"> 
+                                                        <!-- <img src='icons/xls.png' width='24px' /> --> 
+                                                        <apex:image id="xls" value="{!$Resource.xls}" width="24px"/> XLS
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="Page" class="col col-md-5 col-lg-5 hidden-xs pull-right" 
+                                style="font-weight: bold;">
                                     Page {{ currentPage+1 }} of {{ pagedItems.length }}
                                 </div>
-                                <div class="col col-xs-6">
+                                <div class="col col-xs-6 col-sm-6 col-md-5 col-lg-5">
                                     <!-- Pagination -->
                                     <div id="Paginator">
                                         <ul class="pagination pagination-large pull-right">
@@ -484,7 +562,6 @@
         </div>
 
 
-
     </body>
     <!-- AngularJS layer -->
     <script type="text/javascript">
@@ -550,13 +627,13 @@
          */
         var ctrl = app.controller('ContactCtrl', ['$rootScope', '$scope', '$q', '$window', '$log', '$filter', 
             'VFRemotingFactory', function($rootScope, $scope, $q, $window, $log, $filter, VFRemotingFactory) {
-            debugger;
 
             //Controller structured members
             $scope.contacts         = {};
             $scope.pagedItems       = [];
             $scope.filteredItems    = [];
             $scope.groupedItems     = [];
+            $scope.alerts           = [];
 
             //Controller default members
             $scope.itemsPerPage     = 10;
@@ -564,8 +641,6 @@
             $scope.currentPage      = 0;
             $scope.reverse          = false;
             $scope.sortingOrder     = sortingOrder;
-
-            $scope.alerts           = [];
             var count               = 1;
 
             //get Contacts as JSON
@@ -847,14 +922,14 @@
                 $scope.sortingOrder = newSortingOrder;
                 
                 // icon setup
-                jq('th i').each(function() {
+                jQ('th i').each(function() {
                     // icon reset
-                    jq(this).removeClass().addClass('icon-sort');
+                    jQ(this).removeClass().addClass('icon-sort');
                 });
                 if ($scope.reverse)
-                    jq('th.' + newSortingOrder + ' i').removeClass().addClass('icon-chevron-up');
+                    jQ('th.' + newSortingOrder + ' i').removeClass().addClass('icon-chevron-up');
                 else
-                    jq('th.' + newSortingOrder + ' i').removeClass().addClass('icon-chevron-down');
+                    jQ('th.' + newSortingOrder + ' i').removeClass().addClass('icon-chevron-down');
             };
 
             // functions have been describe process the data for display
@@ -863,7 +938,7 @@
             //WATCHER: set css property dynamically
             $scope.$watch('pagedItems', function() {
                 if ($scope.pagedItems.length == 0) {
-                    jq("#Paginator").css('padding-top', '12px');
+                    jQ("#Paginator").css('padding-top', '12px');
                 }
             });
 
@@ -873,14 +948,47 @@
 
             $scope.openAlert = function(type, label, msg) {
                 $scope.alerts.push({
-                    type: type,
-                    msg: msg,
-                    label: label
+                    type:   type,
+                    msg:    msg,
+                    label:  label
                 });
 
             };
 
+            //Table exporters utilities
+            $scope.export_as_pdf            = function() {
+                return jQ("#Contacts").tableExport({type:'pdf',pdfFontSize:'7',escape:'false'});
+            };
 
+            $scope.export_as_json           = function() {
+                return jQ("#Contacts").tableExport({type:'json',escape:'false'});
+            };
+
+            $scope.export_as_csv            = function() {
+                return jQ("#Contacts").tableExport({type:'csv',escape:'false'});
+            };
+
+            $scope.export_as_xls            = function() {
+                return jQ("#Contacts").tableExport({type:'excel',escape:'false'});
+            };
+
+            $scope.export_as_word           = function() {
+                return jQ("#Contacts").tableExport({type:'doc',escape:'false'});
+            };
+
+            $scope.export_as_json_escape    = function() {
+                return jQ("#Contacts").tableExport({type:'json',escape:'true'});
+            };
+
+            $scope.export_as_sql            = function() {
+                return jQ("#Contacts").tableExport({type:'sql',tableName:'Contact'});
+            };
+
+            $scope.export_as_txt            = function() {
+                return jQ("#Contacts").tableExport({type:'txt',escape:'false'});
+            };
+
+    
 
         }]);
 
@@ -955,12 +1063,18 @@
     <!-- JavaScript layer -->
     <script type="text/javascript">
 
-        var jq                  = jQuery.noConflict();
-        var $window             = jq(window);
+        /*---- VARIABLES ----*/
+
+        var jQ                  = jQuery.noConflict();
+        var $window             = jQ(window);
         var sortingOrder        = 'name';
+
+        /*---- ALERT MESSAGES ----*/
+
         var saveFailMsg         = "An error has occurred, Contact not successfully persisted.";
         var mergeFailMsg        = "An error has occurred, Contact not successfully updated.";
         var deleteFailMsg       = "An error has occurred, Contact not successfully deleted.";
+
 
         /**
          * Set tooltip placement dynamically
@@ -994,7 +1108,7 @@
                 if (!sfId.startsWith(".") && !sfId.startsWith("#")) {
                     sfId = '.' + sfId;
                 }
-                jq(sfId).modal('hide');
+                jQ(sfId).modal('hide');
             }
         }
 
@@ -1004,59 +1118,59 @@
         reSize = function(elem, cls) {
             $window.resize(function resize() {
                 if ($window.width() < 514) {
-                    return jq(elem).addClass(cls);
+                    return jQ(elem).addClass(cls);
                 }
-                jq(elem).removeClass(cls);
+                jQ(elem).removeClass(cls);
             }).trigger('resize');   
         }
         
         /**
          * DOM event loader
          */
-        jq(document).ready(function() {
+        jQ(document).ready(function() {
             //Dynamic active li
             var $url = window.location.href.toLowerCase();
             if ($url.includes('contact')) {
-                var $li = jq('ul.menu.list-inline > li.list-inline-item');
+                var $li = jQ('ul.menu.list-inline > li.list-inline-item');
                 for (var i=0; i<$li.length; i++) {
                     if ($li[i].innerText.toLowerCase().includes('contact')) {
-                        jq($li[i]).children().css('color', '#7dabdb').addClass('underline');
+                        jQ($li[i]).children().css('color', '#7dabdb').addClass('underline');
                     }
                 }
             }
             //tooltips
             var $placement = setPlacement();
-            jq('#FirstName').tooltip({
+            jQ('#FirstName').tooltip({
                 trigger:    'focus', 
                 title:      'Digit a first name!',
                 placement:  $placement
             });
 
-            jq('#LastName').tooltip({
+            jQ('#LastName').tooltip({
                 trigger:    'focus', 
                 title:      'Enter a last name!',
                 placement:  $placement
             });
 
-            jq('#Email').tooltip({
+            jQ('#Email').tooltip({
                 trigger:    'focus', 
                 title:      'Digit an email address!',
                 placement:  $placement
             });
 
-            jq('#Phone').tooltip({
+            jQ('#Phone').tooltip({
                 trigger:    'focus', 
                 title:      'Enter a phone number!',
                 placement:  $placement
             });
 
-            jq('#Department').tooltip({
+            jQ('#Department').tooltip({
                 trigger:    'focus',
                 title:      'Enter a Department name!',
                 placement:  $placement
             });
 
-            jq("[data-toggle=tooltip]").tooltip();
+            jQ("[data-toggle=tooltip]").tooltip();
             
             //Resize the Save contact button
             reSize('#Save', 'btn-block');
@@ -1068,9 +1182,19 @@
             hidePagination('Page');
             
             //Animation for alert when clicking on close button
-            jq("div.alert").on("click", "button.close", function() {
-                jq(this).parent().animate({opacity: 0}, 500).hide('slow');
+            jQ("div.alert").on("click", "button.close", function() {
+                jQ(this).parent().animate({opacity: 0}, 500).hide('slow');
             });
+
+            //Dynamic drop button based on window scroll
+            jQ(window).scroll(function() {
+                var scrollTop = jQ("body").scrollTop();
+                if (scrollTop < 650) {
+                    jQ("#showBtnGroup").removeClass('dropdown').addClass('dropup');
+                } else {    
+                    jQ("#showBtnGroup").removeClass('dropup').addClass('dropdown');        
+                }        
+            });  
         });
         
         function isEmpty(obj) {
